@@ -1,0 +1,145 @@
+'\" t
+.\"     Title: nix-build
+.\"    Author: Eelco Dolstra
+.\" Generator: DocBook XSL-NS Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: August 2010
+.\"    Manual: Command Reference
+.\"    Source: Nix 0.16
+.\"  Language: English
+.\"
+.TH "NIX\-BUILD" "1" "August 2010" "Nix 0\&.16" "Command Reference"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+nix-build \- build a Nix expression
+.SH "SYNOPSIS"
+.HP \w'\fBnix\-build\fR\ 'u
+\fBnix\-build\fR [\fB\-\-help\fR] [\fB\-\-version\fR] [\fB\-\-verbose\fR...] [\fB\-v\fR...] [\fB\-\-no\-build\-output\fR] [\fB\-Q\fR] [{\fB\-\-max\-jobs\fR\ |\ \fB\-j\fR}\ \fInumber\fR] [[\fB\-\-cores\fR]\ \fInumber\fR] [[\fB\-\-max\-silent\-time\fR]\ \fInumber\fR] [\fB\-\-keep\-going\fR] [\fB\-k\fR] [\fB\-\-keep\-failed\fR] [\fB\-K\fR] [\fB\-\-fallback\fR] [\fB\-\-readonly\-mode\fR] [\fB\-\-log\-type\fR\ \fItype\fR] [\fB\-\-show\-trace\fR]
+.br
+[\fB\-\-arg\fR\ \fIname\fR\ \fIvalue\fR] [\fB\-\-argstr\fR\ \fIname\fR\ \fIvalue\fR] [{\fB\-\-attr\fR\ |\ \fB\-A\fR}\ \fIattrPath\fR] [\fB\-\-add\-drv\-link\fR] [\fB\-\-drv\-link\ \fR\fIdrvlink\fR] [\fB\-\-no\-out\-link\fR] [{\fB\-\-out\-link\fR\ |\ \fB\-o\fR}\ \fIoutlink\fR] \fIpaths\fR...
+.SH "DESCRIPTION"
+.PP
+The
+\fBnix\-build\fR
+command builds the derivations described by the Nix expressions in
+\fIpaths\fR\&. If the build succeeds, it places a symlink to the result in the current directory\&. The symlink is called
+result\&. If there are multiple Nix expressions, or the Nix expressions evaluate to multiple derivations, multiple sequentially numbered symlinks are created (result,
+result\-2, and so on)\&.
+.PP
+If no
+\fIpaths\fR
+are specified, then
+\fBnix\-build\fR
+will use
+default\&.nix
+in the current directory, if it exists\&.
+.PP
+\fBnix\-build\fR
+is essentially a wrapper around
+\fBnix\-instantiate\fR
+(to translate a high\-level Nix expression to a low\-level store derivation) and
+\fBnix\-store \-\-realise\fR
+(to build the store derivation)\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBWarning\fR
+.ps -1
+.br
+.PP
+The result of the build is automatically registered as a root of the Nix garbage collector\&. This root disappears automatically when the
+result
+symlink is deleted or renamed\&. So don\(cqt rename the symlink\&.
+.sp .5v
+.RE
+.SH "OPTIONS"
+.PP
+See also
+Section\ \&A.1, \(lqCommon options\(rq\&. All options not listed here are passed to
+\fBnix\-store \-\-realise\fR, except for
+\fB\-\-arg\fR
+and
+\fB\-\-attr\fR
+/
+\fB\-A\fR
+which are passed to
+\fBnix\-instantiate\fR\&.
+.PP
+\fB\-\-add\-drv\-link\fR
+.RS 4
+Add a symlink in the current directory to the store derivation produced by
+\fBnix\-instantiate\fR\&. The symlink is called
+derivation
+(which is numbered in the case of multiple derivations)\&. The derivation is a root of the garbage collector until the symlink is deleted or renamed\&.
+.RE
+.PP
+\fB\-\-drv\-link\fR \fIdrvlink\fR
+.RS 4
+Change the name of the symlink to the derivation created when
+\fB\-\-add\-drv\-link\fR
+is used from
+derivation
+to
+\fIdrvlink\fR\&.
+.RE
+.PP
+\fB\-\-no\-out\-link\fR
+.RS 4
+Do not create a symlink to the output path\&. Note that as a result the output does not become a root of the garbage collector, and so might be deleted by
+\fBnix\-store \-\-gc\fR\&.
+.RE
+.PP
+\fB\-\-out\-link\fR / \fB\-o\fR \fIoutlink\fR
+.RS 4
+Change the name of the symlink to the output path created unless
+\fB\-\-no\-out\-link\fR
+is used from
+result
+to
+\fIoutlink\fR\&.
+.RE
+.SH "EXAMPLES"
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-build pkgs/top\-level/all\-packages\&.nix \-A firefox
+store derivation is /nix/store/qybprl8sz2lc\&.\&.\&.\-firefox\-1\&.5\&.0\&.7\&.drv
+/nix/store/d18hyl92g30l\&.\&.\&.\-firefox\-1\&.5\&.0\&.7
+
+$ ls \-l result
+lrwxrwxrwx  \fI\&.\&.\&.\fR  result \-> /nix/store/d18hyl92g30l\&.\&.\&.\-firefox\-1\&.5\&.0\&.7
+
+$ ls \&./result/bin/
+firefox  firefox\-config
+.fi
+.if n \{\
+.RE
+.\}
+.SH "AUTHOR"
+.PP
+\fBEelco Dolstra\fR
+.br
+Delft University of Technology, Department of Software Technology
+.RS 4
+Author
+.RE
+.SH "COPYRIGHT"
+.br
+Copyright \(co 2004, 2005, 2006, 2007, 2008, 2009, 2010 Eelco Dolstra
+.br

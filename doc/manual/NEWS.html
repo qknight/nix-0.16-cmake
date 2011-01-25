@@ -1,0 +1,829 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Nix Release Notes</title><link rel="stylesheet" href="style.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article" title="Nix Release Notes"><div class="titlepage"><div><div><h2 class="title"><a name="sec-relnotes"></a>Nix Release Notes</h2></div></div><hr></div><div class="section" title="Release 0.16 (August 17, 2010)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ssec-relnotes-0.16"></a>Release 0.16 (August 17, 2010)</h2></div></div></div><p>This release has the following improvements:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>The Nix expression evaluator is now much faster in most
+    cases: typically, <a class="link" href="http://www.mail-archive.com/nix-dev@cs.uu.nl/msg04113.html" target="_top">3
+    to 8 times compared to the old implementation</a>.  It also
+    uses less memory.  It no longer depends on the ATerm
+    library.</p></li><li class="listitem"><p>
+      Support for configurable parallelism inside builders.  Build
+      scripts have always had the ability to perform multiple build
+      actions in parallel (for instance, by running <span class="command"><strong>make -j
+      2</strong></span>), but this was not desirable because the number of
+      actions to be performed in parallel was not configurable.  Nix
+      now has an option <code class="option">--cores
+      <em class="replaceable"><code>N</code></em></code> as well as a configuration
+      setting <code class="varname">build-cores =
+      <em class="replaceable"><code>N</code></em></code> that causes the
+      environment variable <code class="envar">NIX_BUILD_CORES</code> to be set to
+      <em class="replaceable"><code>N</code></em> when the builder is invoked.  The
+      builder can use this at its discretion to perform a parallel
+      build, e.g., by calling <span class="command"><strong>make -j
+      <em class="replaceable"><code>N</code></em></strong></span>.  In Nixpkgs, this can be
+      enabled on a per-package basis by setting the derivation
+      attribute <code class="varname">enableParallelBuilding</code> to
+      <code class="literal">true</code>.
+    </p></li><li class="listitem"><p><span class="command"><strong>nix-store -q</strong></span> now supports XML output
+    through the <code class="option">--xml</code> flag.</p></li><li class="listitem"><p>Several bug fixes.</p></li></ul></div></div><div class="section" title="Release 0.15 (March 17, 2010)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ssec-relnotes-0.15"></a>Release 0.15 (March 17, 2010)</h2></div></div></div><p>This is a bug-fix release.  Among other things, it fixes
+building on Mac OS X (Snow Leopard), and improves the contents of
+<code class="filename">/etc/passwd</code> and <code class="filename">/etc/group</code>
+in <code class="literal">chroot</code> builds.</p></div><div class="section" title="Release 0.14 (February 4, 2010)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ssec-relnotes-0.14"></a>Release 0.14 (February 4, 2010)</h2></div></div></div><p>This release has the following improvements:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>The garbage collector now starts deleting garbage much
+    faster than before.  It no longer determines liveness of all paths
+    in the store, but does so on demand.</p></li><li class="listitem"><p>Added a new operation, <span class="command"><strong>nix-store --query
+    --roots</strong></span>, that shows the garbage collector roots that
+    directly or indirectly point to the given store paths.</p></li><li class="listitem"><p>Removed support for converting Berkeley DB-based Nix
+    databases to the new schema.</p></li><li class="listitem"><p>Removed the <code class="option">--use-atime</code> and
+    <code class="option">--max-atime</code> garbage collector options.  They were
+    not very useful in practice.</p></li><li class="listitem"><p>On Windows, Nix now requires Cygwin 1.7.x.</p></li><li class="listitem"><p>A few bug fixes.</p></li></ul></div></div><div class="section" title="Release 0.13 (November 5, 2009)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ssec-relnotes-0.13"></a>Release 0.13 (November 5,
+2009)</h2></div></div></div><p>This is primarily a bug fix release.  It has some new
+features:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Syntactic sugar for writing nested attribute sets.  Instead of
+
+</p><pre class="programlisting">
+{
+  foo = {
+    bar = 123;
+    xyzzy = true;
+  };
+  a = { b = { c = "d"; }; };
+}
+</pre><p>
+
+    you can write
+
+</p><pre class="programlisting">
+{
+  foo.bar = 123;
+  foo.xyzzy = true;
+  a.b.c = "d";
+}
+</pre><p>
+
+    This is useful, for instance, in NixOS configuration files.</p></li><li class="listitem"><p>Support for Nix channels generated by Hydra, the Nix-based
+    continuous build system.  (Hydra generates NAR archives on the
+    fly, so the size and hash of these archives isn&#8217;t known in
+    advance.)</p></li><li class="listitem"><p>Support <code class="literal">i686-linux</code> builds directly on
+    <code class="literal">x86_64-linux</code> Nix installations.  This is
+    implemented using the <code class="function">personality()</code> syscall,
+    which causes <span class="command"><strong>uname</strong></span> to return
+    <code class="literal">i686</code> in child processes.</p></li><li class="listitem"><p>Various improvements to the <code class="literal">chroot</code>
+    support.  Building in a <code class="literal">chroot</code> works quite well
+    now.</p></li><li class="listitem"><p>Nix no longer blocks if it tries to build a path and another
+    process is already building the same path.  Instead it tries to
+    build another buildable path first.  This improves
+    parallelism.</p></li><li class="listitem"><p>Support for large (&gt; 4 GiB) files in NAR archives.</p></li><li class="listitem"><p>Various (performance) improvements to the remote build
+    mechanism.</p></li><li class="listitem"><p>New primops: <code class="varname">builtins.addErrorContext</code> (to
+    add a string to stack traces &#8212; useful for debugging),
+    <code class="varname">builtins.isBool</code>,
+    <code class="varname">builtins.isString</code>,
+    <code class="varname">builtins.isInt</code>,
+    <code class="varname">builtins.intersectAttrs</code>.</p></li><li class="listitem"><p>OpenSolaris support (Sander van der Burg).</p></li><li class="listitem"><p>Stack traces are no longer displayed unless the
+    <code class="option">--show-trace</code> option is used.</p></li><li class="listitem"><p>The scoping rules for <code class="literal">inherit
+    (<em class="replaceable"><code>e</code></em>) ...</code> in recursive
+    attribute sets have changed.  The expression
+    <em class="replaceable"><code>e</code></em> can now refer to the attributes
+    defined in the containing set.</p></li></ul></div></div><div class="section" title="Release 0.12 (November 20, 2008)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ssec-relnotes-0.12"></a>Release 0.12 (November 20,
+2008)</h2></div></div></div><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Nix no longer uses Berkeley DB to store Nix store metadata.
+    The principal advantages of the new storage scheme are: it works
+    properly over decent implementations of NFS (allowing Nix stores
+    to be shared between multiple machines); no recovery is needed
+    when a Nix process crashes; no write access is needed for
+    read-only operations; no more running out of Berkeley DB locks on
+    certain operations.</p><p>You still need to compile Nix with Berkeley DB support if
+    you want Nix to automatically convert your old Nix store to the
+    new schema.  If you don&#8217;t need this, you can build Nix with the
+    <code class="filename">configure</code> option
+    <code class="option">--disable-old-db-compat</code>.</p><p>After the automatic conversion to the new schema, you can
+    delete the old Berkeley DB files:
+
+    </p><pre class="screen">
+$ cd /nix/var/nix/db
+$ rm __db* log.* derivers references referrers reserved validpaths DB_CONFIG</pre><p>
+
+    The new metadata is stored in the directories
+    <code class="filename">/nix/var/nix/db/info</code> and
+    <code class="filename">/nix/var/nix/db/referrer</code>.  Though the
+    metadata is stored in human-readable plain-text files, they are
+    not intended to be human-editable, as Nix is rather strict about
+    the format.</p><p>The new storage schema may or may not require less disk
+    space than the Berkeley DB environment, mostly depending on the
+    cluster size of your file system.  With 1 KiB clusters (which
+    seems to be the <code class="literal">ext3</code> default nowadays) it
+    usually takes up much less space.</p></li><li class="listitem"><p>There is a new substituter that copies paths
+  directly from other (remote) Nix stores mounted somewhere in the
+  filesystem.  For instance, you can speed up an installation by
+  mounting some remote Nix store that already has the packages in
+  question via NFS or <code class="literal">sshfs</code>.  The environment
+  variable <code class="envar">NIX_OTHER_STORES</code> specifies the locations of
+  the remote Nix directories,
+  e.g. <code class="literal">/mnt/remote-fs/nix</code>.</p></li><li class="listitem"><p>New <span class="command"><strong>nix-store</strong></span> operations
+  <code class="option">--dump-db</code> and <code class="option">--load-db</code> to dump
+  and reload the Nix database.</p></li><li class="listitem"><p>The garbage collector has a number of new options to
+  allow only some of the garbage to be deleted.  The option
+  <code class="option">--max-freed <em class="replaceable"><code>N</code></em></code> tells the
+  collector to stop after at least <em class="replaceable"><code>N</code></em> bytes
+  have been deleted.  The option <code class="option">--max-links
+  <em class="replaceable"><code>N</code></em></code> tells it to stop after the
+  link count on <code class="filename">/nix/store</code> has dropped below
+  <em class="replaceable"><code>N</code></em>.  This is useful for very large Nix
+  stores on filesystems with a 32000 subdirectories limit (like
+  <code class="literal">ext3</code>).  The option <code class="option">--use-atime</code>
+  causes store paths to be deleted in order of ascending last access
+  time.  This allows non-recently used stuff to be deleted.  The
+  option <code class="option">--max-atime <em class="replaceable"><code>time</code></em></code>
+  specifies an upper limit to the last accessed time of paths that may
+  be deleted.  For instance,
+
+    </p><pre class="screen">
+    $ nix-store --gc -v --max-atime $(date +%s -d "2 months ago")</pre><p>
+
+  deletes everything that hasn&#8217;t been accessed in two months.</p></li><li class="listitem"><p><span class="command"><strong>nix-env</strong></span> now uses optimistic
+  profile locking when performing an operation like installing or
+  upgrading, instead of setting an exclusive lock on the profile.
+  This allows multiple <span class="command"><strong>nix-env -i / -u / -e</strong></span>
+  operations on the same profile in parallel.  If a
+  <span class="command"><strong>nix-env</strong></span> operation sees at the end that the profile
+  was changed in the meantime by another process, it will just
+  restart.  This is generally cheap because the build results are
+  still in the Nix store.</p></li><li class="listitem"><p>The option <code class="option">--dry-run</code> is now
+  supported by <span class="command"><strong>nix-store -r</strong></span> and
+  <span class="command"><strong>nix-build</strong></span>.</p></li><li class="listitem"><p>The information previously shown by
+  <code class="option">--dry-run</code> (i.e., which derivations will be built
+  and which paths will be substituted) is now always shown by
+  <span class="command"><strong>nix-env</strong></span>, <span class="command"><strong>nix-store -r</strong></span> and
+  <span class="command"><strong>nix-build</strong></span>.  The total download size of
+  substitutable paths is now also shown.  For instance, a build will
+  show something like
+
+    </p><pre class="screen">
+the following derivations will be built:
+  /nix/store/129sbxnk5n466zg6r1qmq1xjv9zymyy7-activate-configuration.sh.drv
+  /nix/store/7mzy971rdm8l566ch8hgxaf89x7lr7ik-upstart-jobs.drv
+  ...
+the following paths will be downloaded/copied (30.02 MiB):
+  /nix/store/4m8pvgy2dcjgppf5b4cj5l6wyshjhalj-samba-3.2.4
+  /nix/store/7h1kwcj29ip8vk26rhmx6bfjraxp0g4l-libunwind-0.98.6
+  ...</pre><p>      
+  
+  </p></li><li class="listitem"><p>Language features:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>@-patterns as in Haskell.  For instance, in a
+      function definition
+
+      </p><pre class="programlisting">f = args @ {x, y, z}: <em class="replaceable"><code>...</code></em>;</pre><p>
+
+      <code class="varname">args</code> refers to the argument as a whole, which
+      is further pattern-matched against the attribute set pattern
+      <code class="literal">{x, y, z}</code>.</p></li><li class="listitem"><p>&#8220;<code class="literal">...</code>&#8221; (ellipsis) patterns.
+      An attribute set pattern can now say <code class="literal">...</code>  at
+      the end of the attribute name list to specify that the function
+      takes <span class="emphasis"><em>at least</em></span> the listed attributes, while
+      ignoring additional attributes.  For instance,
+
+      </p><pre class="programlisting">{stdenv, fetchurl, fuse, ...}: <em class="replaceable"><code>...</code></em></pre><p>
+
+      defines a function that accepts any attribute set that includes
+      at least the three listed attributes.</p></li><li class="listitem"><p>New primops:
+      <code class="varname">builtins.parseDrvName</code> (split a package name
+      string like <code class="literal">"nix-0.12pre12876"</code> into its name
+      and version components, e.g. <code class="literal">"nix"</code> and
+      <code class="literal">"0.12pre12876"</code>),
+      <code class="varname">builtins.compareVersions</code> (compare two version
+      strings using the same algorithm that <span class="command"><strong>nix-env</strong></span>
+      uses), <code class="varname">builtins.length</code> (efficiently compute
+      the length of a list), <code class="varname">builtins.mul</code> (integer
+      multiplication), <code class="varname">builtins.div</code> (integer
+      division).
+      
+      </p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p><span class="command"><strong>nix-prefetch-url</strong></span> now supports
+  <code class="literal">mirror://</code> URLs, provided that the environment
+  variable <code class="envar">NIXPKGS_ALL</code> points at a Nixpkgs
+  tree.</p></li><li class="listitem"><p>Removed the commands
+  <span class="command"><strong>nix-pack-closure</strong></span> and
+  <span class="command"><strong>nix-unpack-closure</strong></span>.   You can do almost the same
+  thing but much more efficiently by doing <code class="literal">nix-store --export
+  $(nix-store -qR <em class="replaceable"><code>paths</code></em>) &gt; closure</code> and
+  <code class="literal">nix-store --import &lt;
+  closure</code>.</p></li><li class="listitem"><p>Lots of bug fixes, including a big performance bug in
+  the handling of <code class="literal">with</code>-expressions.</p></li></ul></div></div><div class="section" title="Release 0.11 (December 31, 2007)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ssec-relnotes-0.11"></a>Release 0.11 (December 31,
+2007)</h2></div></div></div><p>Nix 0.11 has many improvements over the previous stable release.
+The most important improvement is secure multi-user support.  It also
+features many usability enhancements and language extensions, many of
+them prompted by NixOS, the purely functional Linux distribution based
+on Nix.  Here is an (incomplete) list:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Secure multi-user support.  A single Nix store can
+  now be shared between multiple (possible untrusted) users.  This is
+  an important feature for NixOS, where it allows non-root users to
+  install software.  The old setuid method for sharing a store between
+  multiple users has been removed.  Details for setting up a
+  multi-user store can be found in the manual.</p></li><li class="listitem"><p>The new command <span class="command"><strong>nix-copy-closure</strong></span>
+  gives you an easy and efficient way to exchange software between
+  machines.  It copies the missing parts of the closure of a set of
+  store path to or from a remote machine via
+  <span class="command"><strong>ssh</strong></span>.</p></li><li class="listitem"><p>A new kind of string literal: strings between double
+  single-quotes (<code class="literal">''</code>) have indentation
+  &#8220;intelligently&#8221; removed.  This allows large strings (such as shell
+  scripts or configuration file fragments in NixOS) to cleanly follow
+  the indentation of the surrounding expression.  It also requires
+  much less escaping, since <code class="literal">''</code> is less common in
+  most languages than <code class="literal">"</code>.</p></li><li class="listitem"><p><span class="command"><strong>nix-env</strong></span> <code class="option">--set</code>
+  modifies the current generation of a profile so that it contains
+  exactly the specified derivation, and nothing else.  For example,
+  <code class="literal">nix-env -p /nix/var/nix/profiles/browser --set
+  firefox</code> lets the profile named
+  <code class="filename">browser</code> contain just Firefox.</p></li><li class="listitem"><p><span class="command"><strong>nix-env</strong></span> now maintains
+  meta-information about installed packages in profiles.  The
+  meta-information is the contents of the <code class="varname">meta</code>
+  attribute of derivations, such as <code class="varname">description</code> or
+  <code class="varname">homepage</code>.  The command <code class="literal">nix-env -q --xml
+  --meta</code> shows all meta-information.</p></li><li class="listitem"><p><span class="command"><strong>nix-env</strong></span> now uses the
+  <code class="varname">meta.priority</code> attribute of derivations to resolve
+  filename collisions between packages.  Lower priority values denote
+  a higher priority.  For instance, the GCC wrapper package and the
+  Binutils package in Nixpkgs both have a file
+  <code class="filename">bin/ld</code>, so previously if you tried to install
+  both you would get a collision.  Now, on the other hand, the GCC
+  wrapper declares a higher priority than Binutils, so the former&#8217;s
+  <code class="filename">bin/ld</code> is symlinked in the user
+  environment.</p></li><li class="listitem"><p><span class="command"><strong>nix-env -i / -u</strong></span>: instead of
+  breaking package ties by version, break them by priority and version
+  number.  That is, if there are multiple packages with the same name,
+  then pick the package with the highest priority, and only use the
+  version if there are multiple packages with the same
+  priority.</p><p>This makes it possible to mark specific versions/variant in
+  Nixpkgs more or less desirable than others.  A typical example would
+  be a beta version of some package (e.g.,
+  <code class="literal">gcc-4.2.0rc1</code>) which should not be installed even
+  though it is the highest version, except when it is explicitly
+  selected (e.g., <code class="literal">nix-env -i
+  gcc-4.2.0rc1</code>).</p></li><li class="listitem"><p><span class="command"><strong>nix-env --set-flag</strong></span> allows meta
+  attributes of installed packages to be modified.  There are several
+  attributes that can be usefully modified, because they affect the
+  behaviour of <span class="command"><strong>nix-env</strong></span> or the user environment
+  build script:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p><code class="varname">meta.priority</code> can be changed
+      to resolve filename clashes (see above).</p></li><li class="listitem"><p><code class="varname">meta.keep</code> can be set to
+      <code class="literal">true</code> to prevent the package from being
+      upgraded or replaced.  Useful if you want to hang on to an older
+      version of a package.</p></li><li class="listitem"><p><code class="varname">meta.active</code> can be set to
+      <code class="literal">false</code> to &#8220;disable&#8221; the package.  That is, no
+      symlinks will be generated to the files of the package, but it
+      remains part of the profile (so it won&#8217;t be garbage-collected).
+      Set it back to <code class="literal">true</code> to re-enable the
+      package.</p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p><span class="command"><strong>nix-env -q</strong></span> now has a flag
+  <code class="option">--prebuilt-only</code> (<code class="option">-b</code>) that causes
+  <span class="command"><strong>nix-env</strong></span> to show only those derivations whose
+  output is already in the Nix store or that can be substituted (i.e.,
+  downloaded from somewhere).  In other words, it shows the packages
+  that can be installed &#8220;quickly&#8221;, i.e., don&#8217;t need to be built from
+  source.  The <code class="option">-b</code> flag is also available in
+  <span class="command"><strong>nix-env -i</strong></span> and <span class="command"><strong>nix-env -u</strong></span> to
+  filter out derivations for which no pre-built binary is
+  available.</p></li><li class="listitem"><p>The new option <code class="option">--argstr</code> (in
+  <span class="command"><strong>nix-env</strong></span>, <span class="command"><strong>nix-instantiate</strong></span> and
+  <span class="command"><strong>nix-build</strong></span>) is like <code class="option">--arg</code>, except
+  that the value is a string.  For example, <code class="literal">--argstr system
+  i686-linux</code> is equivalent to <code class="literal">--arg system
+  \"i686-linux\"</code> (note that <code class="option">--argstr</code>
+  prevents annoying quoting around shell arguments).</p></li><li class="listitem"><p><span class="command"><strong>nix-store</strong></span> has a new operation
+  <code class="option">--read-log</code> (<code class="option">-l</code>)
+  <em class="parameter"><code>paths</code></em> that shows the build log of the given
+  paths.</p></li><li class="listitem"><p>Nix now uses Berkeley DB 4.5.  The database is
+  upgraded automatically, but you should be careful not to use old
+  versions of Nix that still use Berkeley DB 4.4.</p></li><li class="listitem"><p>The option <code class="option">--max-silent-time</code>
+  (corresponding to the configuration setting
+  <code class="literal">build-max-silent-time</code>) allows you to set a
+  timeout on builds &#8212; if a build produces no output on
+  <code class="literal">stdout</code> or <code class="literal">stderr</code> for the given
+  number of seconds, it is terminated.  This is useful for recovering
+  automatically from builds that are stuck in an infinite
+  loop.</p></li><li class="listitem"><p><span class="command"><strong>nix-channel</strong></span>: each subscribed
+  channel is its own attribute in the top-level expression generated
+  for the channel.  This allows disambiguation (e.g. <code class="literal">nix-env
+  -i -A nixpkgs_unstable.firefox</code>).</p></li><li class="listitem"><p>The substitutes table has been removed from the
+  database.  This makes operations such as <span class="command"><strong>nix-pull</strong></span>
+  and <span class="command"><strong>nix-channel --update</strong></span> much, much
+  faster.</p></li><li class="listitem"><p><span class="command"><strong>nix-pull</strong></span> now supports
+  bzip2-compressed manifests.  This speeds up
+  channels.</p></li><li class="listitem"><p><span class="command"><strong>nix-prefetch-url</strong></span> now has a
+  limited form of caching.  This is used by
+  <span class="command"><strong>nix-channel</strong></span> to prevent unnecessary downloads when
+  the channel hasn&#8217;t changed.</p></li><li class="listitem"><p><span class="command"><strong>nix-prefetch-url</strong></span> now by default
+  computes the SHA-256 hash of the file instead of the MD5 hash.  In
+  calls to <code class="function">fetchurl</code> you should pass the
+  <code class="literal">sha256</code> attribute instead of
+  <code class="literal">md5</code>.  You can pass either a hexadecimal or a
+  base-32 encoding of the hash.</p></li><li class="listitem"><p>Nix can now perform builds in an automatically
+  generated &#8220;chroot&#8221;.  This prevents a builder from accessing stuff
+  outside of the Nix store, and thus helps ensure purity.  This is an
+  experimental feature.</p></li><li class="listitem"><p>The new command <span class="command"><strong>nix-store
+  --optimise</strong></span> reduces Nix store disk space usage by finding
+  identical files in the store and hard-linking them to each other.
+  It typically reduces the size of the store by something like
+  25-35%.</p></li><li class="listitem"><p><code class="filename">~/.nix-defexpr</code> can now be a
+  directory, in which case the Nix expressions in that directory are
+  combined into an attribute set, with the file names used as the
+  names of the attributes.  The command <span class="command"><strong>nix-env
+  --import</strong></span> (which set the
+  <code class="filename">~/.nix-defexpr</code> symlink) is
+  removed.</p></li><li class="listitem"><p>Derivations can specify the new special attribute
+  <code class="varname">allowedReferences</code> to enforce that the references
+  in the output of a derivation are a subset of a declared set of
+  paths.  For example, if <code class="varname">allowedReferences</code> is an
+  empty list, then the output must not have any references.  This is
+  used in NixOS to check that generated files such as initial ramdisks
+  for booting Linux don&#8217;t have any dependencies.</p></li><li class="listitem"><p>The new attribute
+  <code class="varname">exportReferencesGraph</code> allows builders access to
+  the references graph of their inputs.  This is used in NixOS for
+  tasks such as generating ISO-9660 images that contain a Nix store
+  populated with the closure of certain paths.</p></li><li class="listitem"><p>Fixed-output derivations (like
+  <code class="function">fetchurl</code>) can define the attribute
+  <code class="varname">impureEnvVars</code> to allow external environment
+  variables to be passed to builders.  This is used in Nixpkgs to
+  support proxy configuration, among other things.</p></li><li class="listitem"><p>Several new built-in functions:
+  <code class="function">builtins.attrNames</code>,
+  <code class="function">builtins.filterSource</code>,
+  <code class="function">builtins.isAttrs</code>,
+  <code class="function">builtins.isFunction</code>,
+  <code class="function">builtins.listToAttrs</code>,
+  <code class="function">builtins.stringLength</code>,
+  <code class="function">builtins.sub</code>,
+  <code class="function">builtins.substring</code>,
+  <code class="function">throw</code>,
+  <code class="function">builtins.trace</code>,
+  <code class="function">builtins.readFile</code>.</p></li></ul></div></div><div class="section" title="Release 0.10.1 (October 11, 2006)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id341497"></a>Release 0.10.1 (October 11, 2006)</h2></div></div></div><p>This release fixes two somewhat obscure bugs that occur when
+evaluating Nix expressions that are stored inside the Nix store
+(<code class="literal">NIX-67</code>).  These do not affect most users.</p></div><div class="section" title="Release 0.10 (October 6, 2006)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id341514"></a>Release 0.10 (October 6, 2006)</h2></div></div></div><div class="note" title="Note"><h3 class="title">Note</h3><p>This version of Nix uses Berkeley DB 4.4 instead of 4.3.
+The database is upgraded automatically, but you should be careful not
+to use old versions of Nix that still use Berkeley DB 4.3.  In
+particular, if you use a Nix installed through Nix, you should run
+
+</p><pre class="screen">
+$ nix-store --clear-substitutes</pre><p>
+
+first.</p></div><div class="warning" title="Warning"><h3 class="title">Warning</h3><p>Also, the database schema has changed slighted to fix a
+performance issue (see below).  When you run any Nix 0.10 command for
+the first time, the database will be upgraded automatically.  This is
+irreversible.</p></div><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><span class="command"><strong>nix-env</strong></span> usability improvements:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>An option <code class="option">--compare-versions</code>
+      (or <code class="option">-c</code>) has been added to <span class="command"><strong>nix-env
+      --query</strong></span> to allow you to compare installed versions of
+      packages to available versions, or vice versa.  An easy way to
+      see if you are up to date with what&#8217;s in your subscribed
+      channels is <code class="literal">nix-env -qc \*</code>.</p></li><li class="listitem"><p><code class="literal">nix-env --query</code> now takes as
+      arguments a list of package names about which to show
+      information, just like <code class="option">--install</code>, etc.: for
+      example, <code class="literal">nix-env -q gcc</code>.  Note that to show
+      all derivations, you need to specify
+      <code class="literal">\*</code>.</p></li><li class="listitem"><p><code class="literal">nix-env -i
+      <em class="replaceable"><code>pkgname</code></em></code> will now install
+      the highest available version of
+      <em class="replaceable"><code>pkgname</code></em>, rather than installing all
+      available versions (which would probably give collisions)
+      (<code class="literal">NIX-31</code>).</p></li><li class="listitem"><p><code class="literal">nix-env (-i|-u) --dry-run</code> now
+      shows exactly which missing paths will be built or
+      substituted.</p></li><li class="listitem"><p><code class="literal">nix-env -qa --description</code>
+      shows human-readable descriptions of packages, provided that
+      they have a <code class="literal">meta.description</code> attribute (which
+      most packages in Nixpkgs don&#8217;t have yet).</p></li></ul></div><p>
+  
+  </p></li><li class="listitem"><p>New language features:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Reference scanning (which happens after each
+      build) is much faster and takes a constant amount of
+      memory.</p></li><li class="listitem"><p>String interpolation.  Expressions like
+
+</p><pre class="programlisting">
+"--with-freetype2-library=" + freetype + "/lib"</pre><p>
+
+      can now be written as
+
+</p><pre class="programlisting">
+"--with-freetype2-library=${freetype}/lib"</pre><p>
+
+      You can write arbitrary expressions within
+      <code class="literal">${<em class="replaceable"><code>...</code></em>}</code>, not just
+      identifiers.</p></li><li class="listitem"><p>Multi-line string literals.</p></li><li class="listitem"><p>String concatenations can now involve
+      derivations, as in the example <code class="code">"--with-freetype2-library="
+      + freetype + "/lib"</code>.  This was not previously possible
+      because we need to register that a derivation that uses such a
+      string is dependent on <code class="literal">freetype</code>.  The
+      evaluator now properly propagates this information.
+      Consequently, the subpath operator (<code class="literal">~</code>) has
+      been deprecated.</p></li><li class="listitem"><p>Default values of function arguments can now
+      refer to other function arguments; that is, all arguments are in
+      scope in the default values
+      (<code class="literal">NIX-45</code>).</p></li><li class="listitem"><p>Lots of new built-in primitives, such as
+      functions for list manipulation and integer arithmetic.  See the
+      manual for a complete list.  All primops are now available in
+      the set <code class="varname">builtins</code>, allowing one to test for
+      the availability of primop in a backwards-compatible
+      way.</p></li><li class="listitem"><p>Real let-expressions: <code class="literal">let x = ...;
+      ... z = ...; in ...</code>.</p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p>New commands <span class="command"><strong>nix-pack-closure</strong></span> and
+  <span class="command"><strong>nix-unpack-closure</strong></span> than can be used to easily
+  transfer a store path with all its dependencies to another machine.
+  Very convenient whenever you have some package on your machine and
+  you want to copy it somewhere else.</p></li><li class="listitem"><p>XML support:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p><code class="literal">nix-env -q --xml</code> prints the
+      installed or available packages in an XML representation for
+      easy processing by other tools.</p></li><li class="listitem"><p><code class="literal">nix-instantiate --eval-only
+      --xml</code> prints an XML representation of the resulting
+      term.  (The new flag <code class="option">--strict</code> forces &#8216;deep&#8217;
+      evaluation of the result, i.e., list elements and attributes are
+      evaluated recursively.)</p></li><li class="listitem"><p>In Nix expressions, the primop
+      <code class="function">builtins.toXML</code> converts a term to an XML
+      representation.  This is primarily useful for passing structured
+      information to builders.</p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p>You can now unambigously specify which derivation to
+  build or install in <span class="command"><strong>nix-env</strong></span>,
+  <span class="command"><strong>nix-instantiate</strong></span> and <span class="command"><strong>nix-build</strong></span>
+  using the <code class="option">--attr</code> / <code class="option">-A</code> flags, which
+  takes an attribute name as argument.  (Unlike symbolic package names
+  such as <code class="literal">subversion-1.4.0</code>, attribute names in an
+  attribute set are unique.)  For instance, a quick way to perform a
+  test build of a package in Nixpkgs is <code class="literal">nix-build
+  pkgs/top-level/all-packages.nix -A
+  <em class="replaceable"><code>foo</code></em></code>.  <code class="literal">nix-env -q
+  --attr</code> shows the attribute names corresponding to each
+  derivation.</p></li><li class="listitem"><p>If the top-level Nix expression used by
+  <span class="command"><strong>nix-env</strong></span>, <span class="command"><strong>nix-instantiate</strong></span> or
+  <span class="command"><strong>nix-build</strong></span> evaluates to a function whose arguments
+  all have default values, the function will be called automatically.
+  Also, the new command-line switch <code class="option">--arg
+  <em class="replaceable"><code>name</code></em>
+  <em class="replaceable"><code>value</code></em></code> can be used to specify
+  function arguments on the command line.</p></li><li class="listitem"><p><code class="literal">nix-install-package --url
+  <em class="replaceable"><code>URL</code></em></code> allows a package to be
+  installed directly from the given URL.</p></li><li class="listitem"><p>Nix now works behind an HTTP proxy server; just set
+  the standard environment variables <code class="envar">http_proxy</code>,
+  <code class="envar">https_proxy</code>, <code class="envar">ftp_proxy</code> or
+  <code class="envar">all_proxy</code> appropriately.  Functions such as
+  <code class="function">fetchurl</code> in Nixpkgs also respect these
+  variables.</p></li><li class="listitem"><p><code class="literal">nix-build -o
+  <em class="replaceable"><code>symlink</code></em></code> allows the symlink to
+  the build result to be named something other than
+  <code class="literal">result</code>.</p></li><li class="listitem"><p>Platform support:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Support for 64-bit platforms, provided a <a class="link" href="http://bugzilla.sen.cwi.nl:8080/show_bug.cgi?id=606" target="_top">suitably
+      patched ATerm library</a> is used.  Also, files larger than 2
+      GiB are now supported.</p></li><li class="listitem"><p>Added support for Cygwin (Windows,
+      <code class="literal">i686-cygwin</code>), Mac OS X on Intel
+      (<code class="literal">i686-darwin</code>) and Linux on PowerPC
+      (<code class="literal">powerpc-linux</code>).</p></li><li class="listitem"><p>Users of SMP and multicore machines will
+      appreciate that the number of builds to be performed in parallel
+      can now be specified in the configuration file in the
+      <code class="literal">build-max-jobs</code> setting.</p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p>Garbage collector improvements:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Open files (such as running programs) are now
+      used as roots of the garbage collector.  This prevents programs
+      that have been uninstalled from being garbage collected while
+      they are still running.  The script that detects these
+      additional runtime roots
+      (<code class="filename">find-runtime-roots.pl</code>) is inherently
+      system-specific, but it should work on Linux and on all
+      platforms that have the <span class="command"><strong>lsof</strong></span>
+      utility.</p></li><li class="listitem"><p><code class="literal">nix-store --gc</code>
+      (a.k.a. <span class="command"><strong>nix-collect-garbage</strong></span>) prints out the
+      number of bytes freed on standard output.  <code class="literal">nix-store
+      --gc --print-dead</code> shows how many bytes would be freed
+      by an actual garbage collection.</p></li><li class="listitem"><p><code class="literal">nix-collect-garbage -d</code>
+      removes all old generations of <span class="emphasis"><em>all</em></span> profiles
+      before calling the actual garbage collector (<code class="literal">nix-store
+      --gc</code>).  This is an easy way to get rid of all old
+      packages in the Nix store.</p></li><li class="listitem"><p><span class="command"><strong>nix-store</strong></span> now has an
+      operation <code class="option">--delete</code> to delete specific paths
+      from the Nix store.  It won&#8217;t delete reachable (non-garbage)
+      paths unless <code class="option">--ignore-liveness</code> is
+      specified.</p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p>Berkeley DB 4.4&#8217;s process registry feature is used
+  to recover from crashed Nix processes.</p></li><li class="listitem"><p>A performance issue has been fixed with the
+  <code class="literal">referer</code> table, which stores the inverse of the
+  <code class="literal">references</code> table (i.e., it tells you what store
+  paths refer to a given path).  Maintaining this table could take a
+  quadratic amount of time, as well as a quadratic amount of Berkeley
+  DB log file space (in particular when running the garbage collector)
+  (<code class="literal">NIX-23</code>).</p></li><li class="listitem"><p>Nix now catches the <code class="literal">TERM</code> and
+  <code class="literal">HUP</code> signals in addition to the
+  <code class="literal">INT</code> signal.  So you can now do a <code class="literal">killall
+  nix-store</code> without triggering a database
+  recovery.</p></li><li class="listitem"><p><span class="command"><strong>bsdiff</strong></span> updated to version
+  4.3.</p></li><li class="listitem"><p>Substantial performance improvements in expression
+  evaluation and <code class="literal">nix-env -qa</code>, all thanks to <a class="link" href="http://valgrind.org/" target="_top">Valgrind</a>.  Memory use has
+  been reduced by a factor 8 or so.  Big speedup by memoisation of
+  path hashing.</p></li><li class="listitem"><p>Lots of bug fixes, notably:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Make sure that the garbage collector can run
+      succesfully when the disk is full
+      (<code class="literal">NIX-18</code>).</p></li><li class="listitem"><p><span class="command"><strong>nix-env</strong></span> now locks the profile
+      to prevent races between concurrent <span class="command"><strong>nix-env</strong></span>
+      operations on the same profile
+      (<code class="literal">NIX-7</code>).</p></li><li class="listitem"><p>Removed misleading messages from
+      <code class="literal">nix-env -i</code> (e.g., <code class="literal">installing
+      `foo'</code> followed by <code class="literal">uninstalling
+      `foo'</code>) (<code class="literal">NIX-17</code>).</p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p>Nix source distributions are a lot smaller now since
+  we no longer include a full copy of the Berkeley DB source
+  distribution (but only the bits we need).</p></li><li class="listitem"><p>Header files are now installed so that external
+  programs can use the Nix libraries.</p></li></ul></div></div><div class="section" title="Release 0.9.2 (September 21, 2005)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id342134"></a>Release 0.9.2 (September 21, 2005)</h2></div></div></div><p>This bug fix release fixes two problems on Mac OS X:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>If Nix was linked against statically linked versions
+  of the ATerm or Berkeley DB library, there would be dynamic link
+  errors at runtime.</p></li><li class="listitem"><p><span class="command"><strong>nix-pull</strong></span> and
+  <span class="command"><strong>nix-push</strong></span> intermittently failed due to race
+  conditions involving pipes and child processes with error messages
+  such as <code class="literal">open2: open(GLOB(0x180b2e4), &gt;&amp;=9) failed: Bad
+  file descriptor at /nix/bin/nix-pull line 77</code> (issue
+  <code class="literal">NIX-14</code>).</p></li></ul></div><p>
+
+</p></div><div class="section" title="Release 0.9.1 (September 20, 2005)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id342176"></a>Release 0.9.1 (September 20, 2005)</h2></div></div></div><p>This bug fix release addresses a problem with the ATerm library
+when the <code class="option">--with-aterm</code> flag in
+<span class="command"><strong>configure</strong></span> was <span class="emphasis"><em>not</em></span> used.</p></div><div class="section" title="Release 0.9 (September 16, 2005)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id342200"></a>Release 0.9 (September 16, 2005)</h2></div></div></div><p>NOTE: this version of Nix uses Berkeley DB 4.3 instead of 4.2.
+The database is upgraded automatically, but you should be careful not
+to use old versions of Nix that still use Berkeley DB 4.2.  In
+particular, if you use a Nix installed through Nix, you should run
+
+</p><pre class="screen">
+$ nix-store --clear-substitutes</pre><p>
+
+first.</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Unpacking of patch sequences is much faster now
+  since we no longer do redundant unpacking and repacking of
+  intermediate paths.</p></li><li class="listitem"><p>Nix now uses Berkeley DB 4.3.</p></li><li class="listitem"><p>The <code class="function">derivation</code> primitive is
+  lazier.  Attributes of dependent derivations can mutually refer to
+  each other (as long as there are no data dependencies on the
+  <code class="varname">outPath</code> and <code class="varname">drvPath</code> attributes
+  computed by <code class="function">derivation</code>).</p><p>For example, the expression <code class="literal">derivation
+  attrs</code> now evaluates to (essentially)
+
+  </p><pre class="programlisting">
+attrs // {
+  type = "derivation";
+  outPath = derivation! attrs;
+  drvPath = derivation! attrs;
+}</pre><p>
+
+  where <code class="function">derivation!</code> is a primop that does the
+  actual derivation instantiation (i.e., it does what
+  <code class="function">derivation</code> used to do).  The advantage is that
+  it allows commands such as <span class="command"><strong>nix-env -qa</strong></span> and
+  <span class="command"><strong>nix-env -i</strong></span> to be much faster since they no longer
+  need to instantiate all derivations, just the
+  <code class="varname">name</code> attribute.</p><p>Also, it allows derivations to cyclically reference each
+  other, for example,
+
+  </p><pre class="programlisting">
+webServer = derivation {
+  ...
+  hostName = "svn.cs.uu.nl";
+  services = [svnService];
+};
+ 
+svnService = derivation {
+  ...
+  hostName = webServer.hostName;
+};</pre><p>
+
+  Previously, this would yield a black hole (infinite recursion).</p></li><li class="listitem"><p><span class="command"><strong>nix-build</strong></span> now defaults to using
+  <code class="filename">./default.nix</code> if no Nix expression is
+  specified.</p></li><li class="listitem"><p><span class="command"><strong>nix-instantiate</strong></span>, when applied to
+  a Nix expression that evaluates to a function, will call the
+  function automatically if all its arguments have
+  defaults.</p></li><li class="listitem"><p>Nix now uses libtool to build dynamic libraries.
+  This reduces the size of executables.</p></li><li class="listitem"><p>A new list concatenation operator
+  <code class="literal">++</code>.  For example, <code class="literal">[1 2 3] ++ [4 5
+  6]</code> evaluates to <code class="literal">[1 2 3 4 5
+  6]</code>.</p></li><li class="listitem"><p>Some currently undocumented primops to support
+  low-level build management using Nix (i.e., using Nix as a Make
+  replacement).  See the commit messages for <code class="literal">r3578</code>
+  and <code class="literal">r3580</code>.</p></li><li class="listitem"><p>Various bug fixes and performance
+  improvements.</p></li></ul></div></div><div class="section" title="Release 0.8.1 (April 13, 2005)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id342352"></a>Release 0.8.1 (April 13, 2005)</h2></div></div></div><p>This is a bug fix release.</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Patch downloading was broken.</p></li><li class="listitem"><p>The garbage collector would not delete paths that
+  had references from invalid (but substitutable)
+  paths.</p></li></ul></div></div><div class="section" title="Release 0.8 (April 11, 2005)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id342378"></a>Release 0.8 (April 11, 2005)</h2></div></div></div><p>NOTE: the hashing scheme in Nix 0.8 changed (as detailed below).
+As a result, <span class="command"><strong>nix-pull</strong></span> manifests and channels built
+for Nix 0.7 and below will now work anymore.  However, the Nix
+expression language has not changed, so you can still build from
+source.  Also, existing user environments continue to work.  Nix 0.8
+will automatically upgrade the database schema of previous
+installations when it is first run.</p><p>If you get the error message
+
+</p><pre class="screen">
+you have an old-style manifest `/nix/var/nix/manifests/[...]'; please
+delete it</pre><p>
+
+you should delete previously downloaded manifests:
+
+</p><pre class="screen">
+$ rm /nix/var/nix/manifests/*</pre><p>
+
+If <span class="command"><strong>nix-channel</strong></span> gives the error message
+
+</p><pre class="screen">
+manifest `http://catamaran.labs.cs.uu.nl/dist/nix/channels/[channel]/MANIFEST'
+is too old (i.e., for Nix &lt;= 0.7)</pre><p>
+
+then you should unsubscribe from the offending channel
+(<span class="command"><strong>nix-channel --remove
+<em class="replaceable"><code>URL</code></em></strong></span>; leave out
+<code class="literal">/MANIFEST</code>), and subscribe to the same URL, with
+<code class="literal">channels</code> replaced by <code class="literal">channels-v3</code>
+(e.g., <a class="link" href="http://catamaran.labs.cs.uu.nl/dist/nix/channels-v3/nixpkgs-unstable" target="_top">http://catamaran.labs.cs.uu.nl/dist/nix/channels-v3/nixpkgs-unstable</a>).</p><p>Nix 0.8 has the following improvements:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>The cryptographic hashes used in store paths are now
+  160 bits long, but encoded in base-32 so that they are still only 32
+  characters long (e.g.,
+  <code class="filename">/nix/store/csw87wag8bqlqk7ipllbwypb14xainap-atk-1.9.0</code>).
+  (This is actually a 160 bit truncation of a SHA-256
+  hash.)</p></li><li class="listitem"><p>Big cleanups and simplifications of the basic store
+  semantics.  The notion of &#8220;closure store expressions&#8221; is gone (and
+  so is the notion of &#8220;successors&#8221;); the file system references of a
+  store path are now just stored in the database.</p><p>For instance, given any store path, you can query its closure:
+
+  </p><pre class="screen">
+$ nix-store -qR $(which firefox)
+... lots of paths ...</pre><p>
+
+  Also, Nix now remembers for each store path the derivation that
+  built it (the &#8220;deriver&#8221;):
+
+  </p><pre class="screen">
+$ nix-store -qR $(which firefox)
+/nix/store/4b0jx7vq80l9aqcnkszxhymsf1ffa5jd-firefox-1.0.1.drv</pre><p>
+
+  So to see the build-time dependencies, you can do
+
+  </p><pre class="screen">
+$ nix-store -qR $(nix-store -qd $(which firefox))</pre><p>
+
+  or, in a nicer format:
+
+  </p><pre class="screen">
+$ nix-store -q --tree $(nix-store -qd $(which firefox))</pre><p>
+
+  </p><p>File system references are also stored in reverse.  For
+  instance, you can query all paths that directly or indirectly use a
+  certain Glibc:
+
+  </p><pre class="screen">
+$ nix-store -q --referrers-closure \
+    /nix/store/8lz9yc6zgmc0vlqmn2ipcpkjlmbi51vv-glibc-2.3.4</pre><p>
+
+  </p></li><li class="listitem"><p>The concept of fixed-output derivations has been
+  formalised.  Previously, functions such as
+  <code class="function">fetchurl</code> in Nixpkgs used a hack (namely,
+  explicitly specifying a store path hash) to prevent changes to, say,
+  the URL of the file from propagating upwards through the dependency
+  graph, causing rebuilds of everything.  This can now be done cleanly
+  by specifying the <code class="varname">outputHash</code> and
+  <code class="varname">outputHashAlgo</code> attributes.  Nix itself checks
+  that the content of the output has the specified hash.  (This is
+  important for maintaining certain invariants necessary for future
+  work on secure shared stores.)</p></li><li class="listitem"><p>One-click installation :-) It is now possible to
+  install any top-level component in Nixpkgs directly, through the web
+  &#8212; see, e.g., <a class="link" href="http://catamaran.labs.cs.uu.nl/dist/nixpkgs-0.8/" target="_top">http://catamaran.labs.cs.uu.nl/dist/nixpkgs-0.8/</a>.
+  All you have to do is associate
+  <code class="filename">/nix/bin/nix-install-package</code> with the MIME type
+  <code class="literal">application/nix-package</code> (or the extension
+  <code class="filename">.nixpkg</code>), and clicking on a package link will
+  cause it to be installed, with all appropriate dependencies.  If you
+  just want to install some specific application, this is easier than
+  subscribing to a channel.</p></li><li class="listitem"><p><span class="command"><strong>nix-store -r
+  <em class="replaceable"><code>PATHS</code></em></strong></span> now builds all the
+  derivations PATHS in parallel.  Previously it did them sequentially
+  (though exploiting possible parallelism between subderivations).
+  This is nice for build farms.</p></li><li class="listitem"><p><span class="command"><strong>nix-channel</strong></span> has new operations
+  <code class="option">--list</code> and
+  <code class="option">--remove</code>.</p></li><li class="listitem"><p>New ways of installing components into user
+  environments:
+
+  </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Copy from another user environment:
+
+    </p><pre class="screen">
+$ nix-env -i --from-profile .../other-profile firefox</pre><p>
+
+    </p></li><li class="listitem"><p>Install a store derivation directly (bypassing the
+    Nix expression language entirely):
+
+    </p><pre class="screen">
+$ nix-env -i /nix/store/z58v41v21xd3...-aterm-2.3.1.drv</pre><p>
+
+    (This is used to implement <span class="command"><strong>nix-install-package</strong></span>,
+    which is therefore immune to evolution in the Nix expression
+    language.)</p></li><li class="listitem"><p>Install an already built store path directly:
+
+    </p><pre class="screen">
+$ nix-env -i /nix/store/hsyj5pbn0d9i...-aterm-2.3.1</pre><p>
+
+    </p></li><li class="listitem"><p>Install the result of a Nix expression specified
+    as a command-line argument:
+
+    </p><pre class="screen">
+$ nix-env -f .../i686-linux.nix -i -E 'x: x.firefoxWrapper'</pre><p>
+
+    The difference with the normal installation mode is that
+    <code class="option">-E</code> does not use the <code class="varname">name</code>
+    attributes of derivations.  Therefore, this can be used to
+    disambiguate multiple derivations with the same
+    name.</p></li></ul></div></li><li class="listitem"><p>A hash of the contents of a store path is now stored
+  in the database after a succesful build.  This allows you to check
+  whether store paths have been tampered with: <span class="command"><strong>nix-store
+  --verify --check-contents</strong></span>.</p></li><li class="listitem"><p>Implemented a concurrent garbage collector.  It is now
+    always safe to run the garbage collector, even if other Nix
+    operations are happening simultaneously.</p><p>However, there can still be GC races if you use
+    <span class="command"><strong>nix-instantiate</strong></span> and <span class="command"><strong>nix-store
+    --realise</strong></span> directly to build things.  To prevent races,
+    use the <code class="option">--add-root</code> flag of those commands.</p></li><li class="listitem"><p>The garbage collector now finally deletes paths in
+  the right order (i.e., topologically sorted under the &#8220;references&#8221;
+  relation), thus making it safe to interrupt the collector without
+  risking a store that violates the closure
+  invariant.</p></li><li class="listitem"><p>Likewise, the substitute mechanism now downloads
+  files in the right order, thus preserving the closure invariant at
+  all times.</p></li><li class="listitem"><p>The result of <span class="command"><strong>nix-build</strong></span> is now
+  registered as a root of the garbage collector.  If the
+  <code class="filename">./result</code> link is deleted, the GC root
+  disappears automatically.</p></li><li class="listitem"><p>The behaviour of the garbage collector can be changed
+    globally by setting options in
+    <code class="filename">/nix/etc/nix/nix.conf</code>.
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p><code class="literal">gc-keep-derivations</code> specifies
+      whether deriver links should be followed when searching for live
+      paths.</p></li><li class="listitem"><p><code class="literal">gc-keep-outputs</code> specifies
+      whether outputs of derivations should be followed when searching
+      for live paths.</p></li><li class="listitem"><p><code class="literal">env-keep-derivations</code>
+      specifies whether user environments should store the paths of
+      derivations when they are added (thus keeping the derivations
+      alive).</p></li></ul></div><p>
+
+  </p></li><li class="listitem"><p>New <span class="command"><strong>nix-env</strong></span> query flags
+  <code class="option">--drv-path</code> and
+  <code class="option">--out-path</code>.</p></li><li class="listitem"><p><span class="command"><strong>fetchurl</strong></span> allows SHA-1 and SHA-256
+  in addition to MD5.  Just specify the attribute
+  <code class="varname">sha1</code> or <code class="varname">sha256</code> instead of
+  <code class="varname">md5</code>.</p></li><li class="listitem"><p>Manual updates.</p></li></ul></div><p>
+
+</p></div><div class="section" title="Release 0.7 (January 12, 2005)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id342757"></a>Release 0.7 (January 12, 2005)</h2></div></div></div><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Binary patching.  When upgrading components using
+  pre-built binaries (through nix-pull / nix-channel), Nix can
+  automatically download and apply binary patches to already installed
+  components instead of full downloads.  Patching is &#8220;smart&#8221;: if there
+  is a <span class="emphasis"><em>sequence</em></span> of patches to an installed
+  component, Nix will use it.  Patches are currently generated
+  automatically between Nixpkgs (pre-)releases.</p></li><li class="listitem"><p>Simplifications to the substitute
+  mechanism.</p></li><li class="listitem"><p>Nix-pull now stores downloaded manifests in
+  <code class="filename">/nix/var/nix/manifests</code>.</p></li><li class="listitem"><p>Metadata on files in the Nix store is canonicalised
+  after builds: the last-modified timestamp is set to 0 (00:00:00
+  1/1/1970), the mode is set to 0444 or 0555 (readable and possibly
+  executable by all; setuid/setgid bits are dropped), and the group is
+  set to the default.  This ensures that the result of a build and an
+  installation through a substitute is the same; and that timestamp
+  dependencies are revealed.</p></li></ul></div></div><div class="section" title="Release 0.6 (November 14, 2004)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id342804"></a>Release 0.6 (November 14, 2004)</h2></div></div></div><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Rewrite of the normalisation engine.
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Multiple builds can now be performed in parallel
+      (option <code class="option">-j</code>).</p></li><li class="listitem"><p>Distributed builds.  Nix can now call a shell
+      script to forward builds to Nix installations on remote
+      machines, which may or may not be of the same platform
+      type.</p></li><li class="listitem"><p>Option <code class="option">--fallback</code> allows
+      recovery from broken substitutes.</p></li><li class="listitem"><p>Option <code class="option">--keep-going</code> causes
+      building of other (unaffected) derivations to continue if one
+      failed.</p></li></ul></div><p>
+
+    </p></li><li class="listitem"><p>Improvements to the garbage collector (i.e., it
+  should actually work now).</p></li><li class="listitem"><p>Setuid Nix installations allow a Nix store to be
+  shared among multiple users.</p></li><li class="listitem"><p>Substitute registration is much faster
+  now.</p></li><li class="listitem"><p>A utility <span class="command"><strong>nix-build</strong></span> to build a
+  Nix expression and create a symlink to the result int the current
+  directory; useful for testing Nix derivations.</p></li><li class="listitem"><p>Manual updates.</p></li><li class="listitem"><p><span class="command"><strong>nix-env</strong></span> changes:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Derivations for other platforms are filtered out
+      (which can be overriden using
+      <code class="option">--system-filter</code>).</p></li><li class="listitem"><p><code class="option">--install</code> by default now
+      uninstall previous derivations with the same
+      name.</p></li><li class="listitem"><p><code class="option">--upgrade</code> allows upgrading to a
+      specific version.</p></li><li class="listitem"><p>New operation
+      <code class="option">--delete-generations</code> to remove profile
+      generations (necessary for effective garbage
+      collection).</p></li><li class="listitem"><p>Nicer output (sorted,
+      columnised).</p></li></ul></div><p>
+    
+    </p></li><li class="listitem"><p>More sensible verbosity levels all around (builder
+  output is now shown always, unless <code class="option">-Q</code> is
+  given).</p></li><li class="listitem"><p>Nix expression language changes:
+
+    </p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>New language construct: <code class="literal">with
+      <em class="replaceable"><code>E1</code></em>;
+      <em class="replaceable"><code>E2</code></em></code> brings all attributes
+      defined in the attribute set <em class="replaceable"><code>E1</code></em> in
+      scope in <em class="replaceable"><code>E2</code></em>.</p></li><li class="listitem"><p>Added a <code class="function">map</code>
+      function.</p></li><li class="listitem"><p>Various new operators (e.g., string
+      concatenation).</p></li></ul></div><p>
+
+    </p></li><li class="listitem"><p>Expression evaluation is much
+  faster.</p></li><li class="listitem"><p>An Emacs mode for editing Nix expressions (with
+  syntax highlighting and indentation) has been
+  added.</p></li><li class="listitem"><p>Many bug fixes.</p></li></ul></div></div><div class="section" title="Release 0.5 and earlier"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="id343002"></a>Release 0.5 and earlier</h2></div></div></div><p>Please refer to the Subversion commit log messages.</p></div></div></body></html>

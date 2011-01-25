@@ -1,0 +1,240 @@
+#! @perl@ -w -I@libexecdir@/nix
+
+use Fcntl ':flock';
+use English '-no_match_vars';
+use IO::Handle;
+use ssh qw/sshOpts openSSHConnection/;
+
+
+# General operation:
+#
+# Try to find a free machine of type $neededSystem.  We do this as
+# follows:
+# - We acquire an exclusive lock on $currentLoad/main-lock.
+# - For each machine $machine of type $neededSystem and for each $slot
+#   less than the maximum load for that machine, we try to get an
+#   exclusive lock on $currentLoad/$machine-$slot (without blocking).
+#   If we get such a lock, we send "accept" to the caller.  Otherwise,
+#   we send "postpone" and exit. 
+# - We release the exclusive lock on $currentLoad/main-lock.
+# - We perform the build on $neededSystem.
+# - We release the exclusive lock on $currentLoad/$machine-$slot.
+#
+# The nice thing about this scheme is that if we die prematurely, the
+# locks are released automatically.
+
+
+# Make sure that we don't get any SSH passphrase or host key popups -
+# if there is any problem it should fail, not do something
+# interactive.
+$ENV{"DISPLAY"} = "";
+$ENV{"SSH_ASKPASS"} = "";
+
+
+my $loadIncreased = 0;
+
+my ($amWilling, $localSystem, $neededSystem, $drvPath, $maxSilentTime) = @ARGV;
+$maxSilentTime = 0 unless defined $maxSilentTime;
+
+sub sendReply {
+    my $reply = shift;
+    print STDERR "# $reply\n";
+}
+
+sub decline {
+    sendReply "decline";
+    exit 0;
+}
+
+my $currentLoad = $ENV{"NIX_CURRENT_LOAD"};
+decline unless defined $currentLoad;
+mkdir $currentLoad, 0777 or die unless -d $currentLoad;
+
+my $conf = $ENV{"NIX_REMOTE_SYSTEMS"};
+decline if !defined $conf || ! -e $conf;
+
+my $canBuildLocally = $amWilling && ($localSystem eq $neededSystem);
+
+
+# Read the list of machines.
+my @machines;
+open CONF, "< $conf" or die;
+
+while (<CONF>) {
+    chomp;
+    s/\#.*$//g;
+    next if /^\s*$/;
+    /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\d+)(\s+([0-9\.]+))?\s*$/ or die;
+    push @machines,
+        { hostName => $1
+        , systemTypes => [split(/,/, $2)]
+        , sshKeys => $3
+        , maxJobs => $4
+        , speedFactor => 1.0 * ($6 || 1)
+        , enabled => 1
+        };
+}
+
+close CONF;
+
+
+# Acquire the exclusive lock on $currentLoad/main-lock.
+my $mainLock = "$currentLoad/main-lock";
+open MAINLOCK, ">>$mainLock" or die;
+flock(MAINLOCK, LOCK_EX) or die;
+
+
+sub openSlotLock {
+    my ($machine, $slot) = @_;
+    my $slotLockFn = "$currentLoad/" . (join '+', @{$machine->{systemTypes}}) . "-" . $machine->{hostName} . "-$slot";
+    my $slotLock = new IO::Handle;
+    open $slotLock, ">>$slotLockFn" or die;
+    return $slotLock;
+}
+    
+
+my $hostName;
+my $slotLock;
+
+while (1) {
+    
+    # Find all machine that can execute this build, i.e., that support
+    # builds for the given platform and are not at their job limit.
+    my $rightType = 0;
+    my @available = ();
+    LOOP: foreach my $cur (@machines) {
+        if ($cur->{enabled} && grep { $neededSystem eq $_ } @{$cur->{systemTypes}}) {
+            $rightType = 1;
+
+            # We have a machine of the right type.  Determine the load on
+            # the machine.
+            my $slot = 0;
+            my $load = 0;
+            my $free;
+            while ($slot < $cur->{maxJobs}) {
+                my $slotLock = openSlotLock($cur, $slot);
+                if (flock($slotLock, LOCK_EX | LOCK_NB)) {
+                    $free = $slot unless defined $free;
+                    flock($slotLock, LOCK_UN) or die;
+                } else {
+                    $load++;
+                }
+                close $slotLock;
+                $slot++;
+            }
+
+            push @available, { machine => $cur, load => $load, free => $free }
+            if $load < $cur->{maxJobs};
+        }
+    }
+
+    if (defined $ENV{NIX_DEBUG_HOOK}) {
+        print STDERR "load on " . $_->{machine}->{hostName} . " = " . $_->{load} . "\n"
+            foreach @available;
+    }
+
+
+    # Didn't find any available machine?  Then decline or postpone.
+    if (scalar @available == 0) {
+        # Postpone if we have a machine of the right type, except if the
+        # local system can and wants to do the build.
+        if ($rightType && !$canBuildLocally) {
+            sendReply "postpone";
+            exit 0;
+        } else {
+            decline;
+        }
+    }
+
+
+    # Prioritise the available machines as follows:
+    # - First by load divided by speed factor, rounded to the nearest
+    #   integer.  This causes fast machines to be preferred over slow
+    #   machines with similar loads.
+    # - Then by speed factor.
+    # - Finally by load.
+    sub lf { my $x = shift; return int($x->{load} / $x->{machine}->{speedFactor} + 0.4999); }
+    @available = sort
+        { lf($a) <=> lf($b)
+              || $b->{machine}->{speedFactor} <=> $a->{machine}->{speedFactor}
+              || $a->{load} <=> $b->{load}
+        } @available;
+
+
+    # Select the best available machine and lock a free slot.
+    my $selected = $available[0]; 
+    my $machine = $selected->{machine};
+
+    $slotLock = openSlotLock($machine, $selected->{free});
+    flock($slotLock, LOCK_EX | LOCK_NB) or die;
+    utime undef, undef, $slotLock;
+
+    close MAINLOCK;
+
+
+    # Connect to the selected machine.
+    @sshOpts = ("-i", $machine->{sshKeys}, "-x");
+    $hostName = $machine->{hostName};
+    last if openSSHConnection $hostName;
+    
+    warn "unable to open SSH connection to $hostName, trying other available machines...\n";
+    $machine->{enabled} = 0;
+}
+
+
+# Tell Nix we've accepted the build.
+sendReply "accept";
+my $x = <STDIN>;
+chomp $x;
+
+if ($x ne "okay") {
+    exit 0;
+}
+
+
+# Do the actual build.
+print STDERR "building `$drvPath' on `$hostName'\n";
+
+my $inputs = `cat inputs`; die if ($? != 0);
+$inputs =~ s/\n/ /g;
+
+my $outputs = `cat outputs`; die if ($? != 0);
+$outputs =~ s/\n/ /g;
+
+print "copying inputs...\n";
+
+my $maybeSign = "";
+$maybeSign = "--sign" if -e "/nix/etc/nix/signing-key.sec";
+
+system("NIX_SSHOPTS=\"@sshOpts\" @bindir@/nix-copy-closure $hostName $maybeSign $drvPath $inputs") == 0
+    or die "cannot copy inputs to $hostName: $?";
+
+print "building...\n";
+
+my $buildFlags = "--max-silent-time $maxSilentTime --fallback";
+
+# `-tt' forces allocation of a pseudo-terminal.  This is required to
+# make the remote nix-store process receive a signal when the
+# connection dies.  Without it, the remote process might continue to
+# run indefinitely (that is, until it next tries to write to
+# stdout/stderr).
+if (system("ssh $hostName @sshOpts -tt 'nix-store -r $drvPath $buildFlags > /dev/null'") != 0) {
+    # If we couldn't run ssh or there was an ssh problem (indicated by
+    # exit code 255), then we return exit code 1; otherwise we assume
+    # that the builder failed, which we indicate to Nix using exit
+    # code 100.  It's important to distinguish between the two because
+    # the first is a transient failure and the latter is permanent.
+    my $res = $? == -1 || ($? >> 8) == 255 ? 1 : 100;
+    print STDERR "build of `$drvPath' on `$hostName' failed with exit code $?\n";
+    exit $res;
+}
+
+print "build of `$drvPath' on `$hostName' succeeded\n";
+
+foreach my $output (split '\n', $outputs) {
+    my $maybeSignRemote = "";
+    $maybeSignRemote = "--sign" if $UID != 0;
+    
+    system("ssh $hostName @sshOpts 'nix-store --export $maybeSignRemote $output' | @bindir@/nix-store --import > /dev/null") == 0
+	or die "cannot copy $output from $hostName: $?";
+}

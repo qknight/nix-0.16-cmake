@@ -1,0 +1,171 @@
+'\" t
+.\"     Title: nix-push
+.\"    Author: Eelco Dolstra
+.\" Generator: DocBook XSL-NS Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: August 2010
+.\"    Manual: Command Reference
+.\"    Source: Nix 0.16
+.\"  Language: English
+.\"
+.TH "NIX\-PUSH" "1" "August 2010" "Nix 0\&.16" "Command Reference"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+nix-push \- push store paths onto a network cache
+.SH "SYNOPSIS"
+.HP \w'\fBnix\-push\fR\ 'u
+\fBnix\-push\fR {{\fIarchivesPutURL\fR\ \fIarchivesGetURL\fR\ \fImanifestPutURL\fR} | {\fB\-\-copy\fR\ \fIarchivesDir\fR\ \fImanifestFile\fR}} \fIpaths\fR...
+.SH "DESCRIPTION"
+.PP
+The command
+\fBnix\-push\fR
+builds a set of store paths (if necessary), and then packages and uploads all store paths in the resulting closures to a server\&. A network cache thus populated can subsequently be used to speed up software deployment on other machines using the
+\fBnix\-pull\fR
+command\&.
+.PP
+\fBnix\-push\fR
+performs the following actions\&.
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 1.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  1." 4.2
+.\}
+Each path in
+\fIpaths\fR
+is realised (using
+nix\-store \-\-realise)\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 2.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  2." 4.2
+.\}
+All paths in the closure of the store expressions stored in
+\fIpaths\fR
+are determined (using
+nix\-store \-\-query \-\-requisites \-\-include\-outputs)\&. It should be noted that since the
+\fB\-\-include\-outputs\fR
+flag is used, you get a combined source/binary distribution\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 3.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  3." 4.2
+.\}
+All store paths determined in the previous step are packaged and compressed into a
+\fBbzip\fRped NAR archive (extension
+\&.nar\&.bz2)\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 4.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  4." 4.2
+.\}
+A
+\fImanifest\fR
+is created that contains information on the store paths, their eventual URLs in the cache, and cryptographic hashes of the contents of the NAR archives\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 5.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  5." 4.2
+.\}
+Each store path is uploaded to the remote directory specified by
+\fIarchivesPutURL\fR\&. HTTP PUT requests are used to do this\&. However, before a file
+\fIx\fR
+is uploaded to
+\fIarchivesPutURL\fR/\fIx\fR,
+\fBnix\-push\fR
+first determines whether this upload is unnecessary by issuing a HTTP HEAD request on
+\fIarchivesGetURL\fR/\fIx\fR\&. This allows a cache to be shared between many partially overlapping
+\fBnix\-push\fR
+invocations\&. (We use two URLs because the upload URL typically refers to a CGI script, while the download URL just refers to a file system directory on the server\&.)
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 6.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  6." 4.2
+.\}
+The manifest is uploaded using an HTTP PUT request to
+\fImanifestPutURL\fR\&. The corresponding URL to download the manifest can then be used by
+\fBnix\-pull\fR\&.
+.RE
+.sp
+.RE
+.SH "EXAMPLES"
+.PP
+To upload files there typically is some CGI script on the server side\&. This script should be be protected with a password\&. The following example uploads the store paths resulting from building the Nix expressions in
+foo\&.nix, passing appropriate authentication information:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-push \e
+    http://foo@bar:server\&.domain/cgi\-bin/upload\&.pl/cache \e
+    http://server\&.domain/cache \e
+    http://foo@bar:server\&.domain/cgi\-bin/upload\&.pl/MANIFEST \e
+    $(nix\-instantiate foo\&.nix)
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+This will push both sources and binaries (and any build\-time dependencies used in the build, such as compilers)\&.
+.PP
+If we just want to push binaries, not sources and build\-time dependencies, we can do:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-push \fIurls\fR $(nix\-store \-r $(nix\-instantiate foo\&.nix))
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.SH "AUTHOR"
+.PP
+\fBEelco Dolstra\fR
+.br
+Delft University of Technology, Department of Software Technology
+.RS 4
+Author
+.RE
+.SH "COPYRIGHT"
+.br
+Copyright \(co 2004, 2005, 2006, 2007, 2008, 2009, 2010 Eelco Dolstra
+.br

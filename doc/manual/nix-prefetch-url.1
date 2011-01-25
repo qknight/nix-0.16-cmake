@@ -1,0 +1,90 @@
+'\" t
+.\"     Title: nix-prefetch-url
+.\"    Author: Eelco Dolstra
+.\" Generator: DocBook XSL-NS Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: August 2010
+.\"    Manual: Command Reference
+.\"    Source: Nix 0.16
+.\"  Language: English
+.\"
+.TH "NIX\-PREFETCH\-URL" "1" "August 2010" "Nix 0\&.16" "Command Reference"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+nix-prefetch-url \- copy a file from a URL into the store and print its MD5 hash
+.SH "SYNOPSIS"
+.HP \w'\fBnix\-prefetch\-url\fR\ 'u
+\fBnix\-prefetch\-url\fR \fIurl\fR [\fIhash\fR]
+.SH "DESCRIPTION"
+.PP
+The command
+\fBnix\-prefetch\-url\fR
+downloads the file referenced by the URL
+\fIurl\fR, prints its cryptographic hash, and copies it into the Nix store\&. The file name in the store is
+\fIhash\fR\-\fIbaseName\fR, where
+\fIbaseName\fR
+is everything following the final slash in
+\fIurl\fR\&.
+.PP
+This command is just a convenience for Nix expression writers\&. Often a Nix expression fetches some source distribution from the network using the
+fetchurl
+expression contained in Nixpkgs\&. However,
+fetchurl
+requires a cryptographic hash\&. If you don\'t know the hash, you would have to download the file first, and then
+fetchurl
+would download it again when you build your Nix expression\&. Since
+fetchurl
+uses the same name for the downloaded file as
+\fBnix\-prefetch\-url\fR, the redundant download can be avoided\&.
+.PP
+The environment variable
+\fBNIX_HASH_ALGO\fR
+specifies which hash algorithm to use\&. It can be either
+md5,
+sha1, or
+sha256\&. The default is
+sha256\&.
+.PP
+If
+\fIhash\fR
+is specified, then a download is not performed if the Nix store already contains a file with the same hash and base name\&. Otherwise, the file is downloaded, and an error if signaled if the actual hash of the file does not match the specified hash\&.
+.PP
+This command prints the hash on standard output\&. Additionally, if the environment variable
+\fBPRINT_PATH\fR
+is set, the path of the downloaded file in the Nix store is also printed\&.
+.SH "EXAMPLES"
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-prefetch\-url ftp://ftp\&.nluug\&.nl/pub/gnu/make/make\-3\&.80\&.tar\&.bz2
+0bbd1df101bc0294d440471e50feca71
+
+$ PRINT_PATH=1 nix\-prefetch\-url ftp://ftp\&.nluug\&.nl/pub/gnu/make/make\-3\&.80\&.tar\&.bz2
+0bbd1df101bc0294d440471e50feca71
+/nix/store/wvyz8ifdn7wyz1p3pqyn0ra45ka2l492\-make\-3\&.80\&.tar\&.bz2
+.fi
+.if n \{\
+.RE
+.\}
+.SH "AUTHOR"
+.PP
+\fBEelco Dolstra\fR
+.br
+Delft University of Technology, Department of Software Technology
+.RS 4
+Author
+.RE
+.SH "COPYRIGHT"
+.br
+Copyright \(co 2004, 2005, 2006, 2007, 2008, 2009, 2010 Eelco Dolstra
+.br

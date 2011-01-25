@@ -1,0 +1,106 @@
+cmake_minimum_required(VERSION 2.8)
+
+# http://www.cmake.org/Wiki/CMake:How_To_Find_Libraries
+#find_package(bzip2 REQUIRED)
+#include_directories(${bzip2_INCLUDE_DIRS})
+#set(LIBS ${LIBS} ${bzip2_LIBRARIES})
+
+SET(PROJECT_NAME nix)
+SET(NIX_VERSION 	"0.16-cmake" )
+
+SET(NIX_STORE_DIR 	"store" )
+SET(NIX_DATA_DIR 	"share" )
+SET(NIX_STATE_DIR 	"state/nix" )
+SET(NIX_LOG_DIR 	"${NIX_STATE_DIR}/log/nix" )
+SET(NIX_CONF_DIR 	"etc" )
+SET(NIX_LIBEXEC_DIR 	"libexec" )
+SET(NIX_BIN_DIR 	"bin" )
+SET(NIX_STATE_DIR	"state" )
+SET(NIX_LIB_DIR		"lib" )
+SET(NIX_INCLUDE_DIR	"include" )
+
+SET(NIX_SYSTEM 		"x86_64-linux")
+SET(NIX_OPENSSL_PATH 	"/usr/bin/openssl")
+
+# could be removed upstream (as it is not used in the cmake build)
+CONFIGURE_FILE("config.h.in" "config.h" @only)
+
+# use, i.e. don't skip the full RPATH for the build tree
+SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
+
+# when building, don't use the install RPATH already
+# (but later on when installing)
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+
+# the RPATH to be used when installing
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${NIX_LIB_DIR}/nix")
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(doc)
+ADD_SUBDIRECTORY(misc)
+ADD_SUBDIRECTORY(corepkgs)
+ADD_SUBDIRECTORY(scripts)
+
+macro(NIX_CREATEDIR DIR)
+	INSTALL(CODE "FILE(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${DIR})")
+endmacro(NIX_CREATEDIR) 
+
+#if ("$ENV{DESTDIR}" MATCHES "${VAR_INSTALL_DIR}")
+#MESSAGE("ENV: $ENV{DESTDIR}")
+#MESSAGE("VAR: ${VAR_INSTALL_DIR}")
+
+NIX_CREATEDIR("${NIX_LIBEXEC_DIR}/nix")
+NIX_CREATEDIR("${NIX_LIBEXEC_DIR}/nix/substituters")
+
+NIX_CREATEDIR("${NIX_DATA_DIR}/nix/log2html")
+NIX_CREATEDIR("${NIX_DATA_DIR}/nix/corepkgs")
+NIX_CREATEDIR("${NIX_DATA_DIR}/nix/corepkgs/nar")
+NIX_CREATEDIR("${NIX_DATA_DIR}/nix/corepkgs")
+NIX_CREATEDIR("${NIX_DATA_DIR}/nix/corepkgs/buildenv")
+NIX_CREATEDIR("${NIX_DATA_DIR}/nix/corepkgs")
+NIX_CREATEDIR("${NIX_DATA_DIR}/nix/corepkgs/channels")
+NIX_CREATEDIR("${NIX_DATA_DIR}/doc/nix/manual")
+NIX_CREATEDIR("${NIX_DATA_DIR}/doc/nix/manual/figures")
+NIX_CREATEDIR("${NIX_DATA_DIR}/doc/nix/release-notes")
+NIX_CREATEDIR("${NIX_DATA_DIR}/emacs/site-lisp")
+NIX_CREATEDIR("${NIX_DATA_DIR}/doc/nix")
+
+NIX_CREATEDIR("${NIX_CONF_DIR}/profile.d")
+NIX_CREATEDIR("${NIX_CONF_DIR}/nix")
+
+NIX_CREATEDIR("${NIX_STATE_DIR}/nix")
+NIX_CREATEDIR("${NIX_STATE_DIR}/nix/db")
+NIX_CREATEDIR("${NIX_STATE_DIR}/log/nix")
+NIX_CREATEDIR("${NIX_STATE_DIR}/log/nix/drvs")
+NIX_CREATEDIR("${NIX_STATE_DIR}/nix/profiles")
+NIX_CREATEDIR("${NIX_STATE_DIR}/nix/gcroots")
+NIX_CREATEDIR("${NIX_STATE_DIR}/nix/temproots")
+NIX_CREATEDIR("${NIX_STATE_DIR}/nix/userpool")
+NIX_CREATEDIR("${NIX_STATE_DIR}/nix/manifests")
+
+NIX_CREATEDIR("${NIX_STORE_DIR}")
+
+macro(NIX_SYMLINK FILE LINK)
+	INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink
+	      \"${CMAKE_INSTALL_PREFIX}/${FILE}\"
+	      \"${CMAKE_INSTALL_PREFIX}/${LINK}\")"
+	)
+endmacro(NIX_SYMLINK) 
+
+NIX_SYMLINK("${NIX_STATE_DIR}/nix/profiles"  "${NIX_STATE_DIR}/nix/gcroots/profiles")
+NIX_SYMLINK("${NIX_STATE_DIR}/nix/manifests" "${NIX_STATE_DIR}/nix/gcroots/manifests")
+
+INSTALL(FILES "nix.conf.example" DESTINATION "${NIX_CONF_DIR}/nix")
+# FIXME need to do this properly
+IF(NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${NIX_CONF_DIR}/nix/nix.conf")
+	INSTALL( CODE "
+		FILE(RENAME \"${CMAKE_INSTALL_PREFIX}/${NIX_CONF_DIR}/nix/nix.conf.example\" \"${CMAKE_INSTALL_PREFIX}/${NIX_CONF_DIR}/nix/nix.conf\")
+		" )
+	INSTALL(FILES "nix.conf.example" DESTINATION "${NIX_CONF_DIR}/nix")
+ENDIF(NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${NIX_CONF_DIR}/nix/nix.conf")
+
+INSTALL(FILES README DESTINATION "${NIX_DATA_DIR}/doc/nix")

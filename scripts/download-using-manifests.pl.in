@@ -1,0 +1,378 @@
+#! @perl@ -w -I@libexecdir@/nix
+
+use strict;
+use readmanifest;
+use POSIX qw(strftime);
+use File::Temp qw(tempdir);
+
+my $binDir = $ENV{"NIX_BIN_DIR"} || "@bindir@";
+
+STDOUT->autoflush(1);
+
+my $manifestDir = ($ENV{"NIX_MANIFESTS_DIR"} or "@localstatedir@/nix/manifests");
+my $logFile = "@localstatedir@/log/nix/downloads";
+
+
+# Load all manifests.
+my %narFiles;
+my %localPaths;
+my %patches;
+
+for my $manifest (glob "$manifestDir/*.nixmanifest") {
+    my $version = readManifest($manifest, \%narFiles, \%localPaths, \%patches);
+    if ($version < 3) {
+        print STDERR "you have an old-style manifest `$manifest'; please delete it\n";
+        exit 1;
+    }
+    if ($version >= 10) {
+        print STDERR "manifest `$manifest' is too new; please delete it or upgrade Nix\n";
+        exit 1;
+    }
+}
+
+
+# Parse the arguments.
+
+if ($ARGV[0] eq "--query") {
+
+    while (<STDIN>) {
+        my $cmd = $_; chomp $cmd;
+
+        if ($cmd eq "have") {
+            my $storePath = <STDIN>; chomp $storePath;
+            print STDOUT ((defined $narFiles{$storePath} or defined $localPaths{$storePath})
+                ? "1\n" : "0\n");
+        }
+
+        elsif ($cmd eq "info") {
+            my $storePath = <STDIN>; chomp $storePath;
+            my $info;
+            if (defined $narFiles{$storePath}) {
+                $info = @{$narFiles{$storePath}}[0];
+            }
+            elsif (defined $localPaths{$storePath}) {
+                $info = @{$localPaths{$storePath}}[0];
+            }
+            else {
+                print "0\n";
+                next; # not an error
+            }
+            print "1\n";
+            print "$info->{deriver}\n";
+            my @references = split " ", $info->{references};
+            print scalar @references, "\n";
+            print "$_\n" foreach @references;
+            my $size = $info->{size} || 0;
+            print "$size\n";
+        }
+        
+        else { die "unknown command `$cmd'"; }
+    }
+
+    exit 0;
+}
+
+elsif ($ARGV[0] ne "--substitute") {
+    die;
+}
+
+
+die unless scalar @ARGV == 2;
+my $targetPath = $ARGV[1];
+
+
+# Create a temporary directory.
+my $tmpDir = tempdir("nix-download.XXXXXX", CLEANUP => 1, TMPDIR => 1)
+    or die "cannot create a temporary directory";
+
+my $tmpNar = "$tmpDir/nar";
+my $tmpNar2 = "$tmpDir/nar2";
+
+
+open LOGFILE, ">>$logFile" or die "cannot open log file $logFile";
+
+my $date = strftime ("%F %H:%M:%S UTC", gmtime (time));
+print LOGFILE "$$ get $targetPath $date\n";
+
+print "\n*** Trying to download/patch `$targetPath'\n";
+
+
+# If we can copy from a local path, do that.
+my $localPathList = $localPaths{$targetPath};
+foreach my $localPath (@{$localPathList}) {
+    my $sourcePath = $localPath->{copyFrom};
+    if (-e $sourcePath) {
+        print "\n*** Step 1/1: copying from $sourcePath\n";
+        system("$binDir/nix-store --dump $sourcePath | $binDir/nix-store --restore $targetPath") == 0
+            or die "cannot copy `$sourcePath' to `$targetPath'";
+        exit 0;
+    }
+}
+
+
+# Build a graph of all store paths that might contribute to the
+# construction of $targetPath, and the special node "start".  The
+# edges are either patch operations, or downloads of full NAR files.
+# The latter edges only occur between "start" and a store path.
+
+my %graph;
+
+$graph{"start"} = {d => 0, pred => undef, edges => []};
+
+my @queue = ();
+my $queueFront = 0;
+my %done;
+
+sub addToQueue {
+    my $v = shift;
+    return if defined $done{$v};
+    $done{$v} = 1;
+    push @queue, $v;
+}
+
+sub addNode {
+    my $u = shift;
+    $graph{$u} = {d => 999999999999, pred => undef, edges => []}
+        unless defined $graph{$u};
+}
+
+sub addEdge {
+    my $u = shift;
+    my $v = shift;
+    my $w = shift;
+    my $type = shift;
+    my $info = shift;
+    addNode $u;
+    push @{$graph{$u}->{edges}},
+        {weight => $w, start => $u, end => $v, type => $type, info => $info};
+    my $n = scalar @{$graph{$u}->{edges}};
+}
+
+addToQueue $targetPath;
+
+sub isValidPath {
+    my $p = shift;
+    return system("$binDir/nix-store --check-validity '$p' 2> /dev/null") == 0;
+}
+
+sub parseHash {
+    my $hash = shift;
+    if ($hash =~ /^(.+):(.+)$/) {
+        return ($1, $2);
+    } else {
+        return ("md5", $hash);
+    }
+}
+
+while ($queueFront < scalar @queue) {
+    my $u = $queue[$queueFront++];
+#    print "$u\n";
+
+    addNode $u;
+
+    # If the path already exists, it has distance 0 from the "start"
+    # node.
+    if (isValidPath($u)) {
+        addEdge "start", $u, 0, "present", undef;
+    }
+
+    else {
+
+        # Add patch edges.
+        my $patchList = $patches{$u};
+        foreach my $patch (@{$patchList}) {
+            if (isValidPath($patch->{basePath})) {
+                # !!! this should be cached
+                my ($baseHashAlgo, $baseHash) = parseHash $patch->{baseHash};
+                my $format = "--base32";
+                $format = "" if $baseHashAlgo eq "md5";
+                my $hash = `$binDir/nix-hash --type '$baseHashAlgo' $format "$patch->{basePath}"`;
+                chomp $hash;
+                if ($hash ne $baseHash) {
+                    print LOGFILE "$$ rejecting $patch->{basePath}\n";
+                    next;
+                }
+            }
+            addToQueue $patch->{basePath};
+            addEdge $patch->{basePath}, $u, $patch->{size}, "patch", $patch;
+        }
+
+        # Add NAR file edges to the start node.
+        my $narFileList = $narFiles{$u};
+        foreach my $narFile (@{$narFileList}) {
+            # !!! how to handle files whose size is not known in advance?
+            # For now, assume some arbitrary size (1 MB).
+            addEdge "start", $u, ($narFile->{size} || 1000000), "narfile", $narFile;
+            if ($u eq $targetPath) {
+                my $size = $narFile->{size} || -1;
+                print LOGFILE "$$ full-download-would-be $size\n";
+            }
+        }
+
+    }
+}
+
+
+# Run Dijkstra's shortest path algorithm to determine the shortest
+# sequence of download and/or patch actions that will produce
+# $targetPath.
+
+sub byDistance { # sort by distance, reversed
+    return -($graph{$a}->{d} <=> $graph{$b}->{d});
+}
+
+my @todo = keys %graph;
+
+while (scalar @todo > 0) {
+
+    # Remove the closest element from the todo list.
+    @todo = sort byDistance @todo;
+    my $u = pop @todo;
+
+    my $u_ = $graph{$u};
+
+    foreach my $edge (@{$u_->{edges}}) {
+        my $v_ = $graph{$edge->{end}};
+        if ($v_->{d} > $u_->{d} + $edge->{weight}) {
+            $v_->{d} = $u_->{d} + $edge->{weight};
+            # Store the edge; to edge->start is actually the
+            # predecessor.
+            $v_->{pred} = $edge; 
+        }
+    }
+}
+
+
+# Retrieve the shortest path from "start" to $targetPath.
+my @path = ();
+my $cur = $targetPath;
+die "don't know how to produce $targetPath\n"
+    unless defined $graph{$targetPath}->{pred};
+while ($cur ne "start") {
+    push @path, $graph{$cur}->{pred};
+    $cur = $graph{$cur}->{pred}->{start};
+}
+
+
+# Traverse the shortest path, perform the actions described by the
+# edges.
+my $curStep = 1;
+my $maxStep = scalar @path;
+
+sub downloadFile { 
+    my $url = shift; 
+    $ENV{"PRINT_PATH"} = 1;
+    $ENV{"QUIET"} = 1;
+    my ($hash, $path) = `$binDir/nix-prefetch-url '$url'`;
+    die "download of `$url' failed" unless $? == 0;
+    chomp $path;
+    return $path;
+}
+
+my $finalNarHash;
+
+while (scalar @path > 0) {
+    my $edge = pop @path;
+    my $u = $edge->{start};
+    my $v = $edge->{end};
+
+    print "\n*** Step $curStep/$maxStep: ";
+
+    if ($edge->{type} eq "present") {
+        print "using already present path `$v'\n";
+        print LOGFILE "$$ present $v\n";
+
+        if ($curStep < $maxStep) {
+            # Since this is not the last step, the path will be used
+            # as a base to one or more patches.  So turn the base path
+            # into a NAR archive, to which we can apply the patch.
+            print "  packing base path...\n";
+            system("$binDir/nix-store --dump $v > $tmpNar") == 0
+                or die "cannot dump `$v'";
+        }
+    }
+
+    elsif ($edge->{type} eq "patch") {
+        my $patch = $edge->{info};
+        print "applying patch `$patch->{url}' to `$u' to create `$v'\n";
+
+        print LOGFILE "$$ patch $patch->{url} $patch->{size} $patch->{baseHash} $u $v\n";
+
+        # Download the patch.
+        print "  downloading patch...\n";
+        my $patchPath = downloadFile "$patch->{url}";
+
+        # Apply the patch to the NAR archive produced in step 1 (for
+        # the already present path) or a later step (for patch sequences).
+        print "  applying patch...\n";
+        system("@libexecdir@/bspatch $tmpNar $tmpNar2 $patchPath") == 0
+            or die "cannot apply patch `$patchPath' to $tmpNar";
+
+        if ($curStep < $maxStep) {
+            # The archive will be used as the base of the next patch.
+            rename "$tmpNar2", "$tmpNar" or die "cannot rename NAR archive: $!";
+        } else {
+            # This was the last patch.  Unpack the final NAR archive
+            # into the target path.
+            print "  unpacking patched archive...\n";
+            system("$binDir/nix-store --restore $v < $tmpNar2") == 0
+                or die "cannot unpack $tmpNar2 into `$v'";
+        }
+
+        $finalNarHash = $patch->{narHash};
+    }
+
+    elsif ($edge->{type} eq "narfile") {
+        my $narFile = $edge->{info};
+        print "downloading `$narFile->{url}' into `$v'\n";
+
+        my $size = $narFile->{size} || -1;
+        print LOGFILE "$$ narfile $narFile->{url} $size $v\n";
+        
+        # Download the archive.
+        print "  downloading archive...\n";
+        my $narFilePath = downloadFile "$narFile->{url}";
+
+        if ($curStep < $maxStep) {
+            # The archive will be used a base to a patch.
+            system("@bunzip2@ < '$narFilePath' > $tmpNar") == 0
+                or die "cannot unpack `$narFilePath' into `$v'";
+        } else {
+            # Unpack the archive into the target path.
+            print "  unpacking archive...\n";
+            system("@bunzip2@ < '$narFilePath' | $binDir/nix-store --restore '$v'") == 0
+                or die "cannot unpack `$narFilePath' into `$v'";
+        }
+
+        $finalNarHash = $narFile->{narHash};
+    }
+
+    $curStep++;
+}
+
+
+# Make sure that the hash declared in the manifest matches what we
+# downloaded and unpacked.
+
+if (defined $finalNarHash) {
+    my ($hashAlgo, $hash) = parseHash $finalNarHash;
+
+    # The hash in the manifest can be either in base-16 or base-32.
+    # Handle both.
+    my $extraFlag =
+        ($hashAlgo eq "sha256" && length($hash) != 64)
+        ? "--base32" : "";
+    
+    my $hash2 = `@bindir@/nix-hash --type $hashAlgo $extraFlag $targetPath`
+        or die "cannot compute hash of path `$targetPath'";
+    chomp $hash2;
+    
+    die "hash mismatch in downloaded path $targetPath; expected $hash, got $hash2"
+        if $hash ne $hash2;
+} else {
+    die "cannot check integrity of the downloaded path since its hash is not known";
+}
+
+
+print LOGFILE "$$ success\n";
+close LOGFILE;

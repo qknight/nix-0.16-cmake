@@ -1,0 +1,210 @@
+use strict;
+
+
+sub addPatch {
+    my ($patches, $storePath, $patch) = @_;
+
+    $$patches{$storePath} = []
+        unless defined $$patches{$storePath};
+
+    my $patchList = $$patches{$storePath};
+
+    my $found = 0;
+    foreach my $patch2 (@{$patchList}) {
+        $found = 1 if
+            $patch2->{url} eq $patch->{url} &&
+            $patch2->{basePath} eq $patch->{basePath};
+    }
+    
+    push @{$patchList}, $patch if !$found;
+
+    return !$found;
+}
+
+
+sub readManifest {
+    my ($manifest, $narFiles, $localPaths, $patches) = @_;
+
+    open MANIFEST, "<$manifest"
+        or die "cannot open `$manifest': $!";
+
+    my $inside = 0;
+    my $type;
+
+    my $manifestVersion = 2;
+
+    my $storePath;
+    my $url;
+    my $hash;
+    my $size;
+    my $basePath;
+    my $baseHash;
+    my $patchType;
+    my $narHash;
+    my $references;
+    my $deriver;
+    my $hashAlgo;
+    my $copyFrom;
+
+    while (<MANIFEST>) {
+        chomp;
+        s/\#.*$//g;
+        next if (/^$/);
+
+        if (!$inside) {
+
+            if (/^\s*(\w*)\s*\{$/) {
+                $type = $1;
+                $type = "narfile" if $type eq "";
+                $inside = 1;
+                undef $storePath;
+                undef $url;
+                undef $hash;
+                undef $size;
+                undef $narHash;
+                undef $basePath;
+                undef $baseHash;
+                undef $patchType;
+                $references = "";
+                $deriver = "";
+                $hashAlgo = "md5";
+	    }
+
+        } else {
+            
+            if (/^\}$/) {
+                $inside = 0;
+
+                if ($type eq "narfile") {
+
+                    $$narFiles{$storePath} = []
+                        unless defined $$narFiles{$storePath};
+
+                    my $narFileList = $$narFiles{$storePath};
+
+                    my $found = 0;
+                    foreach my $narFile (@{$narFileList}) {
+                        $found = 1 if $narFile->{url} eq $url;
+                    }
+                    if (!$found) {
+                        push @{$narFileList},
+                            { url => $url, hash => $hash, size => $size
+                            , narHash => $narHash, references => $references
+                            , deriver => $deriver, hashAlgo => $hashAlgo
+                            };
+                    }
+                
+                }
+
+                elsif ($type eq "patch") {
+                    addPatch $patches, $storePath,
+                        { url => $url, hash => $hash, size => $size
+                        , basePath => $basePath, baseHash => $baseHash
+                        , narHash => $narHash, patchType => $patchType
+                        , hashAlgo => $hashAlgo
+                        };
+                }
+
+                elsif ($type eq "localPath") {
+
+                    $$localPaths{$storePath} = []
+                        unless defined $$localPaths{$storePath};
+
+                    my $localPathsList = $$localPaths{$storePath};
+
+                    # !!! remove duplicates
+                    
+                    push @{$localPathsList},
+                        { copyFrom => $copyFrom, references => $references
+                        , deriver => ""
+                        };
+                }
+
+            }
+            
+            elsif (/^\s*StorePath:\s*(\/\S+)\s*$/) { $storePath = $1; }
+            elsif (/^\s*CopyFrom:\s*(\/\S+)\s*$/) { $copyFrom = $1; }
+            elsif (/^\s*Hash:\s*(\S+)\s*$/) { $hash = $1; }
+            elsif (/^\s*URL:\s*(\S+)\s*$/) { $url = $1; }
+            elsif (/^\s*Size:\s*(\d+)\s*$/) { $size = $1; }
+            elsif (/^\s*SuccOf:\s*(\/\S+)\s*$/) { } # obsolete
+            elsif (/^\s*BasePath:\s*(\/\S+)\s*$/) { $basePath = $1; }
+            elsif (/^\s*BaseHash:\s*(\S+)\s*$/) { $baseHash = $1; }
+            elsif (/^\s*Type:\s*(\S+)\s*$/) { $patchType = $1; }
+            elsif (/^\s*NarHash:\s*(\S+)\s*$/) { $narHash = $1; }
+            elsif (/^\s*References:\s*(.*)\s*$/) { $references = $1; }
+            elsif (/^\s*Deriver:\s*(\S+)\s*$/) { $deriver = $1; }
+            elsif (/^\s*ManifestVersion:\s*(\d+)\s*$/) { $manifestVersion = $1; }
+
+            # Compatibility;
+            elsif (/^\s*NarURL:\s*(\S+)\s*$/) { $url = $1; }
+            elsif (/^\s*MD5:\s*(\S+)\s*$/) { $hash = "md5:$1"; }
+
+        }
+    }
+
+    close MANIFEST;
+
+    return $manifestVersion;
+}
+
+
+sub writeManifest {
+    my ($manifest, $narFiles, $patches) = @_;
+
+    open MANIFEST, ">$manifest.tmp"; # !!! check exclusive
+
+    print MANIFEST "version {\n";
+    print MANIFEST "  ManifestVersion: 3\n";
+    print MANIFEST "}\n";
+
+    foreach my $storePath (sort (keys %{$narFiles})) {
+        my $narFileList = $$narFiles{$storePath};
+        foreach my $narFile (@{$narFileList}) {
+            print MANIFEST "{\n";
+            print MANIFEST "  StorePath: $storePath\n";
+            print MANIFEST "  NarURL: $narFile->{url}\n";
+            print MANIFEST "  Hash: $narFile->{hash}\n" if defined $narFile->{hash};
+            print MANIFEST "  NarHash: $narFile->{narHash}\n";
+            print MANIFEST "  Size: $narFile->{size}\n" if defined $narFile->{size};
+            print MANIFEST "  References: $narFile->{references}\n"
+                if defined $narFile->{references} && $narFile->{references} ne "";
+            print MANIFEST "  Deriver: $narFile->{deriver}\n"
+                if defined $narFile->{deriver} && $narFile->{deriver} ne "";
+            print MANIFEST "}\n";
+        }
+    }
+    
+    foreach my $storePath (sort (keys %{$patches})) {
+        my $patchList = $$patches{$storePath};
+        foreach my $patch (@{$patchList}) {
+            print MANIFEST "patch {\n";
+            print MANIFEST "  StorePath: $storePath\n";
+            print MANIFEST "  NarURL: $patch->{url}\n";
+            print MANIFEST "  Hash: $patch->{hash}\n";
+            print MANIFEST "  NarHash: $patch->{narHash}\n";
+            print MANIFEST "  Size: $patch->{size}\n";
+            print MANIFEST "  BasePath: $patch->{basePath}\n";
+            print MANIFEST "  BaseHash: $patch->{baseHash}\n";
+            print MANIFEST "  Type: $patch->{patchType}\n";
+            print MANIFEST "}\n";
+        }
+    }
+    
+    
+    close MANIFEST;
+
+    rename("$manifest.tmp", $manifest)
+        or die "cannot rename $manifest.tmp: $!";
+
+
+    # Create a bzipped manifest.
+    system("@bzip2@ < $manifest > $manifest.bz2.tmp") == 0
+        or die "cannot compress manifest";
+
+    rename("$manifest.bz2.tmp", "$manifest.bz2")
+        or die "cannot rename $manifest.bz2.tmp: $!";
+}
+
+
+return 1;

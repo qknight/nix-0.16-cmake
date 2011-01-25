@@ -1,0 +1,180 @@
+'\" t
+.\"     Title: nix-install-package
+.\"    Author: Eelco Dolstra
+.\" Generator: DocBook XSL-NS Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: August 2010
+.\"    Manual: Command Reference
+.\"    Source: Nix 0.16
+.\"  Language: English
+.\"
+.TH "NIX\-INSTALL\-PACKAG" "1" "August 2010" "Nix 0\&.16" "Command Reference"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+nix-install-package \- install a Nix Package file
+.SH "SYNOPSIS"
+.HP \w'\fBnix\-install\-package\fR\ 'u
+\fBnix\-install\-package\fR [\fB\-\-non\-interactive\fR] [{\fB\-\-profile\fR\ |\ \fB\-p\fR}\ \fIpath\fR]
+.br
+{{\fB\-\-url\fR\ \fIurl\fR} | {\fIfile\fR}}
+.SH "DESCRIPTION"
+.PP
+The command
+\fBnix\-install\-package\fR
+interactively installs a Nix Package file (*\&.nixpkg), which is a small file that contains a store path to be installed along with the URL of a
+\fBnix\-push\fR manifest\&. The Nix Package file is either
+\fIfile\fR, or automatically downloaded from
+\fIurl\fR
+if the
+\fB\-\-url\fR
+switch is used\&.
+.PP
+\fBnix\-install\-package\fR
+is used in
+one\-click installs
+to download and install pre\-built binary packages with all necessary dependencies\&.
+\fBnix\-install\-package\fR
+is intended to be associated with the MIME type
+application/nix\-package
+in a web browser so that it is invoked automatically when you click on
+*\&.nixpkg
+files\&. When invoked, it restarts itself in a terminal window (since otherwise it would be invisible when run from a browser), asks the user to confirm whether to install the package, and if so downloads and installs the package into the user\(cqs current profile\&.
+.PP
+To obtain a window,
+\fBnix\-install\-package\fR
+tries to restart itself with
+\fBxterm\fR,
+\fBkonsole\fR
+and
+\fBgnome\-terminal\fR\&.
+.SH "OPTIONS"
+.PP
+\fB\-\-non\-interactive\fR
+.RS 4
+Do not open a new terminal window and do not ask for confirmation\&.
+.RE
+.PP
+\fB\-\-profile\fR, \fB\-p\fR
+.RS 4
+Install the package into the specified profile rather than the user\(cqs current profile\&.
+.RE
+.SH "EXAMPLES"
+.PP
+To install
+subversion\-1\&.4\&.0\&.nixpkg
+into the user\(cqs current profile, without any prompting:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-install\-package \-\-non\-interactive subversion\-1\&.4\&.0\&.nixpkg
+.fi
+.if n \{\
+.RE
+.\}
+.PP
+To install the same package from some URL into a different profile:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-install\-package \-\-non\-interactive \-p /nix/var/nix/profiles/eelco \e
+    \-\-url http://nix\&.cs\&.uu\&.nl/dist/nix/nixpkgs\-0\&.10pre6622/pkgs/subversion\-1\&.4\&.0\-i686\-linux\&.nixpkg
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.SH "FORMAT OF NIXPKG FILES"
+.PP
+A Nix Package file consists of a single line with the following format:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+NIXPKG1 \fImanifestURL\fR \fIname\fR \fIsystem\fR \fIdrvPath\fR \fIoutPath\fR
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+The elemens are as follows:
+.PP
+NIXPKG1
+.RS 4
+The version of the Nix Package file\&.
+.RE
+.PP
+\fImanifestURL\fR
+.RS 4
+The manifest to be pulled by
+\fBnix\-pull\fR\&. The manifest must contain
+\fIoutPath\fR\&.
+.RE
+.PP
+\fIname\fR
+.RS 4
+The symbolic name and version of the package\&.
+.RE
+.PP
+\fIsystem\fR
+.RS 4
+The platform identifier of the platform for which this binary package is intended\&.
+.RE
+.PP
+\fIdrvPath\fR
+.RS 4
+The path in the Nix store of the derivation from which
+\fIoutPath\fR
+was built\&. Not currently used\&.
+.RE
+.PP
+\fIoutPath\fR
+.RS 4
+The path in the Nix store of the package\&. After
+\fBnix\-install\-package\fR
+has obtained the manifest from
+\fImanifestURL\fR, it performs a
+nix\-env \-i
+\fIoutPath\fR
+to install the binary package\&.
+.RE
+.PP
+An example follows:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+NIXPKG1 http://\&.\&.\&./nixpkgs\-0\&.10pre6622/MANIFEST subversion\-1\&.4\&.0 i686\-darwin \e
+  /nix/store/4kh60jkp\&.\&.\&.\-subversion\-1\&.4\&.0\&.drv \e
+  /nix/store/nkw7wpgb\&.\&.\&.\-subversion\-1\&.4\&.0
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+(The line breaks (\e) are for presentation purposes and not part of the actual file\&.)
+.SH "AUTHOR"
+.PP
+\fBEelco Dolstra\fR
+.br
+Delft University of Technology, Department of Software Technology
+.RS 4
+Author
+.RE
+.SH "COPYRIGHT"
+.br
+Copyright \(co 2004, 2005, 2006, 2007, 2008, 2009, 2010 Eelco Dolstra
+.br

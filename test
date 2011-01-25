@@ -1,0 +1,14 @@
+#!/bin/bash -v
+
+#clean
+cd /home/meli/Desktop/nix/nix-0.16-cmake && rm -Rf build/* && rm -Rf /tmp/nix-cmake/* && cd build 
+
+if [ $? -eq 0 ]; then
+cmake -DCMAKE_INSTALL_PREFIX:PATH="/tmp/nix-cmake" .. && make install | tee -a cmake_make_debug
+#cmake ..  && make install DESTDIR=/tmp/nix-cmake | tee -a cmake_make_debug
+echo "=========== BEGIN list of runtime path adaptions of cmake ============"
+grep "Set runtime path of" cmake_make_debug 
+echo "=========== END   list of runtime path adaptions of cmake ============"
+
+ldd /tmp/nix-cmake/bin/nix-env && ldd /tmp/nix-cmake/usr/local/bin/nix-env
+fi

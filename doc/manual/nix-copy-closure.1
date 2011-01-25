@@ -1,0 +1,131 @@
+'\" t
+.\"     Title: nix-copy-closure
+.\"    Author: Eelco Dolstra
+.\" Generator: DocBook XSL-NS Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: August 2010
+.\"    Manual: Command Reference
+.\"    Source: Nix 0.16
+.\"  Language: English
+.\"
+.TH "NIX\-COPY\-CLOSURE" "1" "August 2010" "Nix 0\&.16" "Command Reference"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+nix-copy-closure \- copy a closure to or from a remote machine via SSH
+.SH "SYNOPSIS"
+.HP \w'\fBnix\-copy\-closure\fR\ 'u
+\fBnix\-copy\-closure\fR [\fB\-\-to\fR | \fB\-\-from\fR] [\fB\-\-sign\fR] [\fB\-\-gzip\fR] [\fIuser@\fR]\fImachine\fR  \fIpaths\fR
+.SH "DESCRIPTION"
+.PP
+\fBnix\-copy\-closure\fR
+gives you an easy and efficient way to exchange software between machines\&. Given one or more Nix store paths
+\fIpaths\fR
+on the local machine,
+\fBnix\-copy\-closure\fR
+computes the closure of those paths (i\&.e\&. all their dependencies in the Nix store), and copies all paths in the closure to the remote machine via the
+\fBssh\fR
+(Secure Shell) command\&. With the
+\fB\-\-from\fR, the direction is reversed: the closure of
+\fIpaths\fR
+on a remote machine is copied to the Nix store on the local machine\&.
+.PP
+This command is efficient because it only sends the store paths that are missing on the target machine\&.
+.PP
+Since
+\fBnix\-copy\-closure\fR
+calls
+\fBssh\fR, you may be asked to type in the appropriate password or passphrase\&. In fact, you may be asked
+\fItwice\fR
+because
+\fBnix\-copy\-closure\fR
+currently connects twice to the remote machine, first to get the set of paths missing on the target machine, and second to send the dump of those paths\&. If this bothers you, use
+\fBssh\-agent\fR\&.
+.SS "Options"
+.PP
+\fB\-\-to\fR
+.RS 4
+Copy the closure of
+\fIpaths\fR
+from the local Nix store to the Nix store on
+\fImachine\fR\&. This is the default\&.
+.RE
+.PP
+\fB\-\-from\fR
+.RS 4
+Copy the closure of
+\fIpaths\fR
+from the Nix store on
+\fImachine\fR
+to the local Nix store\&.
+.RE
+.PP
+\fB\-\-sign\fR
+.RS 4
+Let the sending machine cryptographically sign the dump of each path with the key in
+/nix/etc/nix/signing\-key\&.sec\&. If the user on the target machine does not have direct access to the Nix store (i\&.e\&., if the target machine has a multi\-user Nix installation), then the target machine will check the dump against
+/nix/etc/nix/signing\-key\&.pub
+before unpacking it in its Nix store\&. This allows secure sharing of store paths between untrusted users on two machines, provided that there is a trust relation between the Nix installations on both machines (namely, they have matching public/secret keys)\&.
+.RE
+.PP
+\fB\-\-gzip\fR
+.RS 4
+Compress the dump of each path with
+\fBgzip\fR
+before sending it\&.
+.RE
+.SS "Environment variables"
+.PP
+\fBNIX_SSHOPTS\fR
+.RS 4
+Additional options to be passed to
+\fBssh\fR
+on the command line\&.
+.RE
+.SS "Examples"
+.PP
+Copy Firefox with all its dependencies to a remote machine:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-copy\-closure \-\-to alice@itchy\&.labs $(type \-tP firefox)
+.fi
+.if n \{\
+.RE
+.\}
+.PP
+Copy Subversion from a remote machine and then install it into a user environment:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ nix\-copy\-closure \-\-from alice@itchy\&.labs \e
+    /nix/store/0dj0503hjxy5mbwlafv1rsbdiyx1gkdy\-subversion\-1\&.4\&.4
+$ nix\-env \-i /nix/store/0dj0503hjxy5mbwlafv1rsbdiyx1gkdy\-subversion\-1\&.4\&.4
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.SH "AUTHOR"
+.PP
+\fBEelco Dolstra\fR
+.br
+Delft University of Technology, Department of Software Technology
+.RS 4
+Author
+.RE
+.SH "COPYRIGHT"
+.br
+Copyright \(co 2004, 2005, 2006, 2007, 2008, 2009, 2010 Eelco Dolstra
+.br
