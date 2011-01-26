@@ -9,14 +9,15 @@ INCLUDE_DIRECTORIES (../..)
 INCLUDE_DIRECTORIES (../libutil)
 INCLUDE_DIRECTORIES (../libstore)
 
-# error: not an absolute path: `store'
-# error: not an absolute path: `share'
-# error: not an absolute path: `state/nix/log/nix'
-# ...
-# error: not an absolute path: `etc'  
+IF(OVERWRITE_DEFAULT_STORE_DIR)
+        SET(ABSOLUTE_NIX_STORE_DIR       "/${NIX_STORE_DIR}")
+ELSE(OVERWRITE_DEFAULT_STORE_DIR)
+        SET(ABSOLUTE_NIX_STORE_DIR       "${CMAKE_INSTALL_PREFIX}/${NIX_STORE_DIR}")
+ENDIF(OVERWRITE_DEFAULT_STORE_DIR)
+
 
 add_definitions(
-	-DNIX_STORE_DIR="${CMAKE_INSTALL_PREFIX}/${NIX_STORE_DIR}"
+	-DNIX_STORE_DIR="${ABSOLUTE_NIX_STORE_DIR}"
 	-DNIX_DATA_DIR="${CMAKE_INSTALL_PREFIX}/${NIX_DATA_DIR}"
 	-DNIX_STATE_DIR="${CMAKE_INSTALL_PREFIX}/${NIX_STATE_DIR}"
 	-DNIX_LOG_DIR="${CMAKE_INSTALL_PREFIX}/${NIX_LOG_DIR}"

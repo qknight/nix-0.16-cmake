@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 2.8)
 
-# http://www.cmake.org/Wiki/CMake:How_To_Find_Libraries
-#find_package(bzip2 REQUIRED)
-#include_directories(${bzip2_INCLUDE_DIRS})
-#set(LIBS ${LIBS} ${bzip2_LIBRARIES})
-
 SET(PROJECT_NAME nix)
 SET(NIX_VERSION 	"0.16-cmake" )
 
-# must be absolute paths because of libmain
-SET(NIX_STORE_DIR 	"store" )
-SET(NIX_DATA_DIR 	"share" )
+OPTION(OVERWRITE_DEFAULT_STORE_DIR "In case you want to install the 'store' directory to '/store' instead of {CMAKE_INSTALL_PREFIX}/store' set this value to ON. In case {CMAKE_INSTALL_PREFIX}=/, use the default value" "OFF")
 
+IF(OVERWRITE_DEFAULT_STORE_DIR)
+	SET(NIX_STORE_DIR	"/store")
+ELSE(OVERWRITE_DEFAULT_STORE_DIR)
+	SET(NIX_STORE_DIR 	"store" )
+ENDIF(OVERWRITE_DEFAULT_STORE_DIR)
+
+SET(NIX_DATA_DIR 	"share" )
 SET(NIX_STATE_DIR 	"state/nix" )
 SET(NIX_LOG_DIR 	"${NIX_STATE_DIR}/log/nix" )
 SET(NIX_CONF_DIR 	"etc" )
@@ -176,7 +176,9 @@ NIX_CREATEDIR("${NIX_STATE_DIR}/nix/temproots")
 NIX_CREATEDIR("${NIX_STATE_DIR}/nix/userpool")
 NIX_CREATEDIR("${NIX_STATE_DIR}/nix/manifests")
 
-NIX_CREATEDIR("${NIX_STORE_DIR}")
+IF(NOT OVERWRITE_DEFAULT_STORE_DIR)
+	NIX_CREATEDIR("${NIX_STORE_DIR}")
+ENDIF(NOT OVERWRITE_DEFAULT_STORE_DIR)
 
 macro(NIX_SYMLINK FILE LINK)
 	INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink

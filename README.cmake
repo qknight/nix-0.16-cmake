@@ -1,16 +1,35 @@
-================== todo: ==================
-- search for all command line toggles which were important for ./configure automake crap
-  -> --with-store-dir=/tmp/nix/store
+WARNING: this codebase has not been tested yet, this is a developer release of incomplete code.
 
+================== how to install: ========================
+-- the normal installation into / (used in nix os) --
+1. mkdir build
+2. cd build
+3. cmake -DCMAKE_INSTALL_PREFIX:PATH="/" ..
+4. make install
+5. read the nix operation manual how to use your new nix installation
 
+-- the prefix installation into /home/myuser/nix (can be used in linux/cygwin/macosX) --
+1. mkdir build
+2. cd build
+3. cmake -DCMAKE_INSTALL_PREFIX:PATH="/home/myuser/nix" ..
+4. ccmake ..
+5. make install
+6. (as root): mkdir /store; chown myuser:users /store; chmod 0755 /store
+7. read the nix operation manual how to use your new nix installation
 
+HINT: you can also install your store directory to /home/myuser/nix/store but that will require you to compile
+      all packages from source. you could also (assisted by an administrator) install into /store but all other
+      files will be installed into '/home/myuser/nix/'.
+      in step (4), simply search for OVERWRITE_DEFAULT_STORE_DIR and swich it from OFF to ON. now you have to
+      create (as root) a new directory called '/store/', given the right permissions you can have a normal
+      prefix installation without having to recompile the software all the time.
+      -> this design was chosen as it enables a normal prefix installation without being root, 
+      as only stept (6) is done manually (as root user).
+      NOTE: only one user per system can use the store like this, if you have a high level of trust you can
+            however experiment with the multi user /store setting which requires: 'chmod 1777 /store'.
+            security wise one should think about that.
 
-
-
-
- -> continue with QA and setup a nix-prefix 
-    some files like the documentation is not installed in the autotools build right now, why?
-================== final QA ==================
+================== TODO: final QualityAssurance ==================
  - check all CMakeLists.txt files for static paths which i might have forgotten
  - compare PREFIX-BUILD with PREFIX-DESTDIR-BUILD
  - there should be only one global symlink script: NIX_SYMLINK
@@ -55,13 +74,6 @@
     does ldd still find a working nix-env binary? can it still find the .so files?
    -> no 'yet' it can not ;P
  
-================== how to install: ========================
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX:PATH="/tmp/nix-cmake" ..
-make install
- -> this should be all, remember to adapt the DCMAKE_INSTALL_PREFIX:PATH to your desired path
-
 ================== required software dependencies 0.16: ==================
 - cmake (buildtime only)
 - openssl
@@ -76,7 +88,7 @@ make install
 - tar
 - tr
 
-================== done: ==================
+================== changelog of things already done: ==================
 - WARNING: store/ is no longer created with 1777 but instead drwxr-xr-x 755
 - WARNING: libraries are no longer installed with 'libmain.so.0', 'libmain.so.0.0', 'libmain.so.0.0.0'. also 'libmain.so.la' is missing.
 - NOTICE: renamed scripts/nix-profile.sh.in into scripts/nix.sh.in (as it is installed in the autotools variant as nix.sh)
@@ -111,51 +123,16 @@ make install
            -> this is done to be compatible with the autotools build but could be optimized by not adding a RPATH for in- or out-of-source builds
               as binaries might not be executed during 'make' time (only in the field, after 'make install') anyway it would only speed up the 'make install' step 
               and this does not take that long therefore i did not optimize this
+ - NOTICE: runtime dependencies, programs like 'openssl', are queried via cmake's FIND_PROGRAM(..) for scripts in the directory 'scripts' and 'coreutils'
 
 
 
 
 
 
-- find all utils/programs needed for runtime
- - scripts are still not valid: check for tools and insert them into @foo@
-  # grep -h "@[a-z,0-9]*@" -o * | sort | uniq
 
 
-
-
-
-
-- shell scripts are not executable yet
-  fixed with adding:
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-   over
-        PERMISSIONS OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
-  probably a problem by cmake internally
-   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
-    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                   
-      file INSTALL cannot set permissions on                                                                
-      "/tmp/nix-cmake/bin/nix-collect-garbage"                                                              
-    Call Stack (most recent call first):                                                                    
-      cmake_install.cmake:175 (INCLUDE)  
-
-    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                        
-      file INSTALL cannot set permissions on                                                                     
-      "/tmp/nix-destdir/tmp/nix-cmake/bin/nix-collect-garbage"                                                   
-    Call Stack (most recent call first):                                                                         
-      cmake_install.cmake:175 (INCLUDE) 
-   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
-
-
-
-
-- fix RPATH thing again, did stop to work
-  regression was because of the wrong path being linked to:
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${NIX_LIB_DIR}")
- -> resulting in "/usr/local//lib"
-but using: make install DESTDIR=/tmp/foo 
- -> "/tmp/foo/lib"
-
+================== finished stuff, ignore please, keept for informational purpose (for myself) ==================
 when using: 
 NOTE: cmake -DCMAKE_INSTALL_PREFIX:PATH="/tmp/nix-cmake" .. && make install 
 one HAS to use relative directories to make installation work
@@ -198,3 +175,31 @@ this should be the directory your libfoo.so is located
       therefore a 'relative' path structure for libraries and search paths is crucial
 
  - how is DESTDIR used by packagers? http://www.dwheeler.com/essays/automating-destdir.html
+
+- shell scripts are not executable yet
+  fixed with adding:
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+   over
+        PERMISSIONS OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
+  probably a problem by cmake internally
+   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
+    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                   
+      file INSTALL cannot set permissions on                                                                
+      "/tmp/nix-cmake/bin/nix-collect-garbage"                                                              
+    Call Stack (most recent call first):                                                                    
+      cmake_install.cmake:175 (INCLUDE)  
+
+    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                        
+      file INSTALL cannot set permissions on                                                                     
+      "/tmp/nix-destdir/tmp/nix-cmake/bin/nix-collect-garbage"                                                   
+    Call Stack (most recent call first):                                                                         
+      cmake_install.cmake:175 (INCLUDE) 
+   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
+
+
+- fix RPATH thing again, did stop to work
+  regression was because of the wrong path being linked to:
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${NIX_LIB_DIR}")
+ -> resulting in "/usr/local//lib"
+but using: make install DESTDIR=/tmp/foo 
+ -> "/tmp/foo/lib"
