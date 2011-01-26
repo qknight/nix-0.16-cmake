@@ -8,8 +8,10 @@ cmake_minimum_required(VERSION 2.8)
 SET(PROJECT_NAME nix)
 SET(NIX_VERSION 	"0.16-cmake" )
 
+# must be absolute paths because of libmain
 SET(NIX_STORE_DIR 	"store" )
 SET(NIX_DATA_DIR 	"share" )
+
 SET(NIX_STATE_DIR 	"state/nix" )
 SET(NIX_LOG_DIR 	"${NIX_STATE_DIR}/log/nix" )
 SET(NIX_CONF_DIR 	"etc" )
@@ -19,8 +21,100 @@ SET(NIX_STATE_DIR	"state" )
 SET(NIX_LIB_DIR		"lib" )
 SET(NIX_INCLUDE_DIR	"include" )
 
-SET(NIX_SYSTEM 		"x86_64-linux")
-SET(NIX_OPENSSL_PATH 	"/usr/bin/openssl")
+#should be "x86_64-linux" but is "x86_64 with" provided by CMAKE_HOST_SYSTEM_PROCESSOR
+SET(NIX_SYSTEM 		"${CMAKE_HOST_SYSTEM_PROCESSOR}")
+
+# required external programs (for runtime of nix, not buildtime)
+FIND_PROGRAM(NIX_OPENSSL_PATH openssl
+  PATHS /usr/bin/ /bin ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_OPENSSL_PATH)
+  message(FATAL_ERROR "Could not find 'openssl' command. 'dev-libs/openssl' contains this program.")
+endif(NOT NIX_OPENSSL_PATH)
+
+FIND_PROGRAM(NIX_SHELL_PATH bash
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_SHELL_PATH)
+  message(FATAL_ERROR "Could not find 'bash' command. 'app-shells/bash' contains this program.")
+endif(NOT NIX_SHELL_PATH)
+
+FIND_PROGRAM(NIX_PERL_PATH perl
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_PERL_PATH)
+  message(FATAL_ERROR "Could not find 'perl' command. 'dev-lang/perl' contains this program.")
+endif(NOT NIX_PERL_PATH)
+
+FIND_PROGRAM(NIX_BUNZIP2_PATH bunzip2
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_BUNZIP2_PATH)
+  message(FATAL_ERROR "Could not find 'bunzip2' command. 'app-arch/bzip2' contains this program.")
+endif(NOT NIX_BUNZIP2_PATH)
+
+FIND_PROGRAM(NIX_BZIP2_PATH bzip2
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_BZIP2_PATH)
+  message(FATAL_ERROR "Could not find 'bzip2' command. 'app-arch/bzip2' contains this program.")
+endif(NOT NIX_BZIP2_PATH)
+
+FIND_PROGRAM(NIX_CURL_PATH curl
+  PATHS /usr/bin /bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_CURL_PATH)
+  message(FATAL_ERROR "Could not find 'curl' command. 'net-misc/curl' contains this program.")
+endif(NOT NIX_CURL_PATH)
+
+FIND_PROGRAM(NIX_GZIP_PATH gzip
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_GZIP_PATH)
+  message(FATAL_ERROR "Could not find 'gzip' command. 'app-arch/gzip' contains this program.")
+endif(NOT NIX_GZIP_PATH)
+
+FIND_PROGRAM(NIX_SED_PATH sed
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_SED_PATH)
+  message(FATAL_ERROR "Could not find 'sed' command. 'sys-apps/sed' contains this program.")
+endif(NOT NIX_SED_PATH)
+
+FIND_PROGRAM(NIX_TAR_PATH tar
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_TAR_PATH)
+  message(FATAL_ERROR "Could not find 'tar' command. 'app-arch/tar' contains this program.")
+endif(NOT NIX_TAR_PATH)
+
+FIND_PROGRAM(NIX_TR_PATH tr
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_TR_PATH)
+  message(FATAL_ERROR "Could not find 'tr' command. 'sys-apps/coreutils' contains this program.")
+endif(NOT NIX_TR_PATH)
+
+FIND_PROGRAM(NIX_COREUTILS_PATH mkdir
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_COREUTILS_PATH)
+  message(FATAL_ERROR "Could not find 'mkdir' command. 'sys-apps/coreutils' contains this program.")
+endif(NOT NIX_COREUTILS_PATH)
+
+FIND_PROGRAM(NIX_COREUTILS_PATH mv
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_COREUTILS_PATH)
+  message(FATAL_ERROR "Could not find 'mv' command. 'sys-apps/coreutils' contains this program.")
+endif(NOT NIX_COREUTILS_PATH)
+
+FIND_PROGRAM(NIX_COREUTILS_PATH rmdir
+  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
+)
+if(NOT NIX_COREUTILS_PATH)
+  message(FATAL_ERROR "Could not find 'rmdir' command. 'sys-apps/coreutils' contains this program.")
+endif(NOT NIX_COREUTILS_PATH)
 
 # could be removed upstream (as it is not used in the cmake build)
 CONFIGURE_FILE("config.h.in" "config.h" @only)
@@ -46,7 +140,7 @@ ADD_SUBDIRECTORY(corepkgs)
 ADD_SUBDIRECTORY(scripts)
 
 macro(NIX_CREATEDIR DIR)
-	INSTALL(CODE "FILE(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${DIR})")
+	INSTALL(CODE "FILE(MAKE_DIRECTORY \$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${DIR})")
 endmacro(NIX_CREATEDIR) 
 
 #if ("$ENV{DESTDIR}" MATCHES "${VAR_INSTALL_DIR}")
@@ -86,8 +180,8 @@ NIX_CREATEDIR("${NIX_STORE_DIR}")
 
 macro(NIX_SYMLINK FILE LINK)
 	INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink
-	      \"${CMAKE_INSTALL_PREFIX}/${FILE}\"
-	      \"${CMAKE_INSTALL_PREFIX}/${LINK}\")"
+	      \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${FILE}\"
+	      \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${LINK}\")"
 	)
 endmacro(NIX_SYMLINK) 
 

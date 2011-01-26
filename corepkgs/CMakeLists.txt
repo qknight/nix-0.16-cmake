@@ -1,14 +1,13 @@
 # grep -h "@[a-z,0-9]*@" -o -R * | sort | uniq
 SET(bindir ${NIX_BIN_DIR})
 
-# FIXME: need to use scripts to fill these
-SET(bunzip2 "/bin/bunzip2")
-SET(bzip2 "/bin/bzip2")
-SET(coreutils "/usr/bin")
-SET(perl "/usr/bin/perl")
-SET(shell "/bin/bash")
-SET(tar "/bin/tar")
-SET(tr "/usr/bin/tr")
+SET(bunzip2     "${NIX_BUNZIP2_PATH}")
+SET(bzip2       "${NIX_BZIP2_PATH}")
+SET(coreutils   "${NIX_COREUTILS_PATH}")
+SET(perl        "${NIX_PERL_PATH}")
+SET(shell       "${NIX_SHELL_PATH}")
+SET(tar 	"${NIX_TAR_PATH}")
+SET(tr 		"${NIX_TR_PATh}")
 
 MACRO(NIX_CONFIGURE_FILE FILE)
         CONFIGURE_FILE("${FILE}.in" "${FILE}" @ONLY)

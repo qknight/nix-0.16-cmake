@@ -2,8 +2,8 @@ INSTALL(FILES "manual/manual.html" DESTINATION "${NIX_DATA_DIR}/doc/nix/manual/"
 
 macro(NIX_SYMLINK FILE LINK)
         INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink
-              \"${CMAKE_INSTALL_PREFIX}/${FILE}\"
-              \"${CMAKE_INSTALL_PREFIX}/${LINK}\")"
+              \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${FILE}\"
+              \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${LINK}\")"
         )
 endmacro(NIX_SYMLINK)
 

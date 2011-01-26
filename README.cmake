@@ -1,3 +1,60 @@
+================== todo: ==================
+- search for all command line toggles which were important for ./configure automake crap
+  -> --with-store-dir=/tmp/nix/store
+
+
+
+
+
+
+
+ -> continue with QA and setup a nix-prefix 
+    some files like the documentation is not installed in the autotools build right now, why?
+================== final QA ==================
+ - check all CMakeLists.txt files for static paths which i might have forgotten
+ - compare PREFIX-BUILD with PREFIX-DESTDIR-BUILD
+ - there should be only one global symlink script: NIX_SYMLINK
+
+ check if all files are there, as:
+ - installed headers
+ - installed binaries
+ - installed libraries .so
+ - installed files
+    state/nix/db
+    state/nix/db/big-lock
+    state/nix/db/failed
+    state/nix/db/info
+    state/nix/db/referrer
+    state/nix/db/schema
+ - check permissions of files
+ - create directories
+ - install manpages/configs
+ - symlinks
+    /state/nix/gcroots
+       manifests -> /tmp/nix-cmake/state/nix/manifests/
+       profiles -> /tmp/nix-cmake/state/nix/profiles/
+
+ - check binaries for RPATH and if they are working
+ - check config files (contents) for correct directories
+ - do the binaries as nix-env execute?
+      % ./nix-env          
+      error: no operation specified
+      Try `nix-env --help' for more information.
+
+ - are scripts marked executable? example: bin/nix-pull
+
+ see the test script, which performs some tests automatically
+  - must work if:
+    - out of source build aka; mkdir build; cd build; cmake ..; 
+      WARNING: in source build is not tested nor supported!
+    - install either with:
+      - cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ..; make install
+      - cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ..; make install DESTDIR=/tmp/foo
+    - targets: must compile in windows(cygwin)/linux/mac os x
+  - if the DESTDIR path is altered, say mv /mydestdirpath to /mydestdirpath123, 
+    does ldd still find a working nix-env binary? can it still find the .so files?
+   -> no 'yet' it can not ;P
+ 
 ================== how to install: ========================
 mkdir build
 cd build
@@ -5,51 +62,19 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH="/tmp/nix-cmake" ..
 make install
  -> this should be all, remember to adapt the DCMAKE_INSTALL_PREFIX:PATH to your desired path
 
-WARNING: do NOT use 'make install DESTDIR="DO_NOT_USE_THIS_DESTDIR_THING" as the nix CMakeLists.txt stuff does not work with it
-
-
-
-
-
-todo:
----- installation done targets ----
-
- - search for all command line toggles which were important for ./configure automake crap
-  -> --prefix=/usr/local
-  -> --localstatedir=/tmp/nix/state
-  -> --with-store-dir=/tmp/nix/store
-
-  --bindir=DIR            user executables [EPREFIX/bin]
-  --sbindir=DIR           system admin executables [EPREFIX/sbin]
-  --libexecdir=DIR        program executables [EPREFIX/libexec]  
-  --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
-  --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
-  --localstatedir=DIR     modifiable single-machine data [PREFIX/var]          
-  --libdir=DIR            object code libraries [EPREFIX/lib]                  
-  --includedir=DIR        C header files [PREFIX/include]                      
-  --oldincludedir=DIR     C header files for non-gcc [/usr/include]            
-  --datarootdir=DIR       read-only arch.-independent data root [PREFIX/share] 
-  --datadir=DIR           read-only architecture-independent data [DATAROOTDIR]
-  --infodir=DIR           info documentation [DATAROOTDIR/info]                
-  --localedir=DIR         locale-dependent data [DATAROOTDIR/locale]           
-  --mandir=DIR            man documentation [DATAROOTDIR/man]                  
-  --docdir=DIR            documentation root [DATAROOTDIR/doc/nix]
-
-
-
-
-
-
-
-
-
-- find all utils/programs needed for runtime
- - scripts are still not valid: check for tools and insert them into @foo@
-  # grep -h "@[a-z,0-9]*@" -o * | sort | uniq
-  for that for 
-   -> scripts
-   -> corepkgs
-
+================== required software dependencies 0.16: ==================
+- cmake (buildtime only)
+- openssl
+- coreutils
+- bzip2
+- bunzip2
+- curl
+- bash
+- gzip
+- sed
+- perl
+- tar
+- tr
 
 ================== done: ==================
 - WARNING: store/ is no longer created with 1777 but instead drwxr-xr-x 755
@@ -89,14 +114,37 @@ todo:
 
 
 
- - install headers
- - install binaries
- - install libraries .so
- - check permissions of files
- - create directories
- - install manpages/configs
- - rework the symlink makro to be globally defined
 
+
+
+- find all utils/programs needed for runtime
+ - scripts are still not valid: check for tools and insert them into @foo@
+  # grep -h "@[a-z,0-9]*@" -o * | sort | uniq
+
+
+
+
+
+
+- shell scripts are not executable yet
+  fixed with adding:
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+   over
+        PERMISSIONS OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
+  probably a problem by cmake internally
+   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
+    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                   
+      file INSTALL cannot set permissions on                                                                
+      "/tmp/nix-cmake/bin/nix-collect-garbage"                                                              
+    Call Stack (most recent call first):                                                                    
+      cmake_install.cmake:175 (INCLUDE)  
+
+    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                        
+      file INSTALL cannot set permissions on                                                                     
+      "/tmp/nix-destdir/tmp/nix-cmake/bin/nix-collect-garbage"                                                   
+    Call Stack (most recent call first):                                                                         
+      cmake_install.cmake:175 (INCLUDE) 
+   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
 
 
 
@@ -124,32 +172,7 @@ this should be the directory your libfoo.so is located
    -> $ENV{DESTDIR}${VAR_INSTALL_DIR}
    -> CMAKE_INSTALL_PREFIX
 
-================== required software dependencies: ==================
-- cmake (buildtime only)
-- openssl
-- coreutils
-- bzip2
-- bunzip2
-- curl
-- bash
-- gzip
-- sed
-- perl
-- tar
-- tr
 
-================== final testing: ========================
-  cd build
-  rm -Rf /home/meli/Desktop/nix/nix-0.16-cmake/build/*  && cmake .. && make && make install DESTDIR=/tmp/foo
-
-  - must work if:
-    - out of source build aka; mkdir build; cd build; cmake ..; 
-      WARNING: in source build is not tested nor supported!
-    - install either with:
-      - cmake ..; make install DESTDIR=/tmp/foo
-      - cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ..; make install
-    - must compile in windows(cygwin)/linux/mac os x/nix
-  
 ================== blog: ==================
  - why is nix-prefix deployment faster than gentoo-prefix deployment: 
   > nix uses more system tools
@@ -173,3 +196,5 @@ this should be the directory your libfoo.so is located
    -> it is important that paths are 'relative' in the sense of 'make install' so that one can 
       install this project into a prefix and later create a package from that which will however, be deployed to '/'
       therefore a 'relative' path structure for libraries and search paths is crucial
+
+ - how is DESTDIR used by packagers? http://www.dwheeler.com/essays/automating-destdir.html
