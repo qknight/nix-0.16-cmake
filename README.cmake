@@ -18,7 +18,7 @@ WARNING: this codebase has not been tested yet, this is a developer release of i
 7. read the nix operation manual how to use your new nix installation
 
 HINT: you can also install your store directory to /home/myuser/nix/store but that will require you to compile
-      all packages from source. you could also (assisted by an administrator) install into /store but all other
+      all packages from source. instead you could (assisted by an administrator) install into /store but all other
       files will be installed into '/home/myuser/nix/'.
       in step (4), simply search for OVERWRITE_DEFAULT_STORE_DIR and swich it from OFF to ON. now you have to
       create (as root) a new directory called '/store/', given the right permissions you can have a normal

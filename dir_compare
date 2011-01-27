@@ -1,0 +1,8 @@
+#!/bin/bash
+
+find /tmp/nix-cmake | sed 's%/tmp/nix-cmake%%g' | sort > /tmp/fileA
+find /tmp/nix-autotools | sed 's%/tmp/nix-autotools%%g' | sort > /tmp/fileB
+
+echo "/tmp/nix-cmake    /tmp/nix-autotools"
+comm <(cat /tmp/fileA) <(cat /tmp/fileB)
+
