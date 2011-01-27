@@ -1,8 +1,15 @@
 #!/bin/bash
 
-find /tmp/nix-cmake | sed 's%/tmp/nix-cmake%%g' | sort > /tmp/fileA
-find /tmp/nix-autotools | sed 's%/tmp/nix-autotools%%g' | sort > /tmp/fileB
+DIRA=/tmp/nix-unified
+DIRB=/tmp/nix-autotools
 
-echo "/tmp/nix-cmake    /tmp/nix-autotools"
-comm <(cat /tmp/fileA) <(cat /tmp/fileB)
+find $DIRA | sed "s%${DIRA}%%g" | sort > /tmp/fileA
+find $DIRB | sed "s%${DIRB}%%g" | sort > /tmp/fileB
+
+echo "files in both dirs are filtered by -3"
+echo "--------------------------------------------"
+echo "$DIRA"
+echo "	$DIRB"
+echo "--------------------------------------------"
+comm <(cat /tmp/fileA) <(cat /tmp/fileB) -3
 

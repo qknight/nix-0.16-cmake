@@ -1,0 +1,51 @@
+#!/bin/bash -v
+# helps to see compiler / linker stuff, just uncomment 
+#export VERBOSE=1
+
+#clean
+mkdir -p build
+cd /home/meli/Desktop/nix/nix-0.16-cmake && rm -Rf build/* && rm -Rf /tmp/nix-cmake/*  && rm -Rf /tmp/nix-destdir/* && cd build 
+
+if [ $? -eq 0 ]; then
+NIXPATH="/tmp/nix-cmake"
+NIXDESTDIR="/tmp/nix-destdir"
+cmake -DCMAKE_INSTALL_PREFIX:PATH="${NIXPATH}" .. && make install | tee -a cmake_make_debug && make install DESTDIR=${NIXDESTDIR} | tee -a cmake_make_destdir_debug
+if [ $? -eq 0 ]; then
+
+echo "=========== BEGIN list of runtime path adaptions of cmake's 'make install' ============"
+grep "Set runtime path of" cmake_make_debug 
+echo "=========== BREAK list of runtime path adaptions of cmake's 'make install DESTDIR=...' ============"
+grep "Set runtime path of" cmake_make_destdir_debug 
+echo "=========== END   list of runtime path adaptions of cmake ============"
+
+echo "=========== checking if the nix-env binary can find it's libraries for ${NIXPATH}/bin/nix-env ==========="
+ldd ${NIXPATH}/bin/nix-env 
+echo "=========== checking if the nix-env binary can find it's libraries for ${NIXDESTDIR}/${NIXPATH}/bin/nix-env ==========="
+ldd ${NIXDESTDIR}/${NIXPATH}/bin/nix-env
+
+echo "=========== let's see if all symlinks are in ${NIXPATH} ==========="
+ls -la ${NIXPATH}/state/nix/gcroots
+echo "=========== let's see if all symlinks are in ${NIXDESTDIR}/${NIXPATH} ==========="
+ls -la ${NIXDESTDIR}/${NIXPATH}/state/nix/gcroots
+
+echo "=========== executing the installed binary, should output --help something, in ${NIXPATH} ==========="
+${NIXPATH}/bin/nix-env 2>&1 | tee -a exec_test | grep -e '--help' 
+if [ $? -eq 0 ]; then
+	echo "success: ${NIXPATH}/bin/nix-env was executable"
+else
+	echo "fail: ${NIXPATH}/bin/nix-env was NOT executable"
+	cat exec_test
+fi
+
+echo "=========== executing the installed binary, should output --help something, in ${NIXDESTDIR}/${NIXPATH} ==========="
+${NIXDESTDIR}/${NIXPATH}/bin/nix-env 2>&1 | tee -a exec_test2 | grep -e '--help' 
+if [ $? -eq 0 ]; then
+	echo "success: ${NIXDESTDIR}/${NIXPATH}/bin/nix-env was executable"
+else
+	echo "fail: ${NIXDESTDIR}/${NIXPATH}/bin/nix-env was NOT executable"
+	cat exec_test2
+fi
+
+
+fi
+fi

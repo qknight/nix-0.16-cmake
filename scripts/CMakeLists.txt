@@ -1,9 +1,9 @@
 # FIXME: need to use scripts to fill these
 # grep -h "@[a-z,0-9]*@" -o * | sort | uniq 
+SET(storedir 		"${NIX_STORE_DIR}")
 SET(bindir 		"${CMAKE_INSTALL_PREFIX}/${NIX_BIN_DIR}")
 SET(libexecdir 		"${CMAKE_INSTALL_PREFIX}/${NIX_LIBEXEC_DIR}")
 SET(localstatedir 	"${CMAKE_INSTALL_PREFIX}/${NIX_STATE_DIR}")
-SET(storedir 		"${CMAKE_INSTALL_PREFIX}/${NIX_STORE_DIR}")
 SET(sysconfigdir 	"${CMAKE_INSTALL_PREFIX}/${NIX_CONF_DIR}")
 SET(datadir 		"${CMAKE_INSTALL_PREFIX}/${NIX_DATA_DIR}")
 SET(system ${NIX_SYSTEM})

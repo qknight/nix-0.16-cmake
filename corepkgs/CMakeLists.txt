@@ -1,6 +1,5 @@
 # grep -h "@[a-z,0-9]*@" -o -R * | sort | uniq
-SET(bindir ${NIX_BIN_DIR})
-
+SET(bindir 	"${NIX_BIN_DIR}")
 SET(bunzip2     "${NIX_BUNZIP2_PATH}")
 SET(bzip2       "${NIX_BZIP2_PATH}")
 SET(coreutils   "${NIX_COREUTILS_PATH}")

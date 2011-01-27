@@ -1,28 +1,28 @@
 cmake_minimum_required(VERSION 2.8)
 
 SET(PROJECT_NAME nix)
-SET(NIX_VERSION 	"0.16-cmake" )
+SET(NIX_VERSION 	"0.16" )
 
 OPTION(OVERWRITE_DEFAULT_STORE_DIR "In case you want to install the 'store' directory to '/store' instead of {CMAKE_INSTALL_PREFIX}/store' set this value to ON. In case {CMAKE_INSTALL_PREFIX}=/, use the default value" "OFF")
 
 IF(OVERWRITE_DEFAULT_STORE_DIR)
-	SET(NIX_STORE_DIR	"/store")
+	SET(NIX_STORE_DIR	"/nix/store")
 ELSE(OVERWRITE_DEFAULT_STORE_DIR)
-	SET(NIX_STORE_DIR 	"store" )
+	SET(NIX_STORE_DIR 	"${CMAKE_INSTALL_PREFIX}/nix/store" )
 ENDIF(OVERWRITE_DEFAULT_STORE_DIR)
 
 SET(NIX_DATA_DIR 	"share" )
-SET(NIX_STATE_DIR 	"state/nix" )
+SET(NIX_STATE_DIR 	"state" )
 SET(NIX_LOG_DIR 	"${NIX_STATE_DIR}/log/nix" )
 SET(NIX_CONF_DIR 	"etc" )
 SET(NIX_LIBEXEC_DIR 	"libexec" )
 SET(NIX_BIN_DIR 	"bin" )
-SET(NIX_STATE_DIR	"state" )
 SET(NIX_LIB_DIR		"lib" )
 SET(NIX_INCLUDE_DIR	"include" )
 
 #should be "x86_64-linux" but is "x86_64 with" provided by CMAKE_HOST_SYSTEM_PROCESSOR
-SET(NIX_SYSTEM 		"${CMAKE_HOST_SYSTEM_PROCESSOR}")
+#SET(NIX_SYSTEM 		"${CMAKE_HOST_SYSTEM_PROCESSOR}")
+SET(NIX_SYSTEM          "x86_64-linux")
 
 # required external programs (for runtime of nix, not buildtime)
 FIND_PROGRAM(NIX_OPENSSL_PATH openssl
@@ -116,6 +116,8 @@ if(NOT NIX_COREUTILS_PATH)
   message(FATAL_ERROR "Could not find 'rmdir' command. 'sys-apps/coreutils' contains this program.")
 endif(NOT NIX_COREUTILS_PATH)
 
+SET (NIX_COREUTILS_PATH "/bin")
+
 # could be removed upstream (as it is not used in the cmake build)
 CONFIGURE_FILE("config.h.in" "config.h" @only)
 
@@ -142,10 +144,6 @@ ADD_SUBDIRECTORY(scripts)
 macro(NIX_CREATEDIR DIR)
 	INSTALL(CODE "FILE(MAKE_DIRECTORY \$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${DIR})")
 endmacro(NIX_CREATEDIR) 
-
-#if ("$ENV{DESTDIR}" MATCHES "${VAR_INSTALL_DIR}")
-#MESSAGE("ENV: $ENV{DESTDIR}")
-#MESSAGE("VAR: ${VAR_INSTALL_DIR}")
 
 NIX_CREATEDIR("${NIX_LIBEXEC_DIR}/nix")
 NIX_CREATEDIR("${NIX_LIBEXEC_DIR}/nix/substituters")

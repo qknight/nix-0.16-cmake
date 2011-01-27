@@ -1,0 +1,17 @@
+#!/bin/bash -v
+
+# clean
+rm -Rf /tmp/nix-cmake/*
+
+cd /home/meli/Desktop/nix/nix-0.16-cmake/build
+make install
+
+# remove the nix profile
+#rm -Rf ~/.nix-
+
+cd /tmp/nix-cmake/
+export PATH=/tmp/nix-cmake/bin:$PATH
+
+nix-channel --add http://nixos.org/releases/nixpkgs/channels/nixpkgs-unstable
+nix-channel --update
+nix-channel -qa '*' > software_in_repo

@@ -18,7 +18,7 @@ WARNING: this codebase has not been tested yet, this is a developer release of i
 7. read the nix operation manual how to use your new nix installation
 
 HINT: you can also install your store directory to /home/myuser/nix/store but that will require you to compile
-      all packages from source. instead you could (assisted by an administrator) install into /store but all other
+      all packages from source. you could also (assisted by an administrator) install into /store but all other
       files will be installed into '/home/myuser/nix/'.
       in step (4), simply search for OVERWRITE_DEFAULT_STORE_DIR and swich it from OFF to ON. now you have to
       create (as root) a new directory called '/store/', given the right permissions you can have a normal
@@ -30,6 +30,61 @@ HINT: you can also install your store directory to /home/myuser/nix/store but th
             security wise one should think about that.
 
 ================== TODO: final QualityAssurance ==================
+experimenting with NIX_SYSTEM
+
+
+-> symlink index.html in /tmp/nix-cmake/share/doc/nix/manual should not point to /tmp/nix-cmake/share/doc/nix/manual/manual.html
+  -> in contrast, symlinks in /state/nix/gcroots should be absolute (and they are correct)
+-> /etc/nix/nix.conf.example missing
+- maybe nix DOES really need 1777 in /store?
+- maybe the 'system' > x86_64 vs x86_64-linux
+
+% diff nix-prefetch-url /tmp/nix-autotools/bin/nix-prefetch-url                                                                           4365 2 pts/1 /tmp/nix-cmake/bin meli@anuBis 11-01-27 11:41:30
+7c7
+< export PATH=$PATH:/bin
+---
+> export PATH=$PATH:/usr/bin
+
+1 % diff nix-push /tmp/nix-autotools/bin/nix-push                                                                                         4367 2 pts/1 /tmp/nix-cmake/bin meli@anuBis 11-01-27 11:42:16
+109c109
+<         "{storePath = builtins.storePath \"$storePath\"; system = \"x86_64\"; hashAlgo = \"$hashAlgo\";}) ";
+---
+>         "{storePath = builtins.storePath \"$storePath\"; system = \"x86_64-linux\"; hashAlgo = \"$hashAlgo\";}) ";
+222c222
+<     system("/bin/cp", $src, $tmp) == 0 or die "cannot copy file";
+---
+>     system("/usr/bin/cp", $src, $tmp) == 0 or die "cannot copy file";
+
+% diff etc/profile.d/nix.sh /tmp/nix-autotools/etc/profile.d/nix.sh                                                                           4377 2 pts/1 /tmp/nix-cmake meli@anuBis 11-01-27 11:44:12
+7c7
+<         /bin/ln -s "$_NIX_DEF_LINK" "$NIX_LINK"
+---
+>         /usr/bin/ln -s "$_NIX_DEF_LINK" "$NIX_LINK"
+
+
+ABSOLUTE_NIX_STORE_DIR /tmp/nix-cmake/store             
+-DNIX_DATA_DIR=/tmp/nix-cmake/share                     
+-DNIX_STATE_DIR=/tmp/nix-cmake/state/nix                
+-DNIX_LOG_DIR=/tmp/nix-cmake/state/log/nix              
+-DNIX_CONF_DIR=/tmp/nix-cmake/etc/nix                   
+-DNIX_LIBEXEC_DIR=/tmp/nix-cmake/libexec                
+-DNIX_BIN_DIR=/tmp/nix-cmake/bin                        
+-DNIX_VERSION=0.16-cmake                                
+-DSYSTEM=x86_64         
+
+DNIX_STORE_DIR=\"/tmp/nix-autotools/store\" -
+DNIX_DATA_DIR=\"/tmp/nix-autotools/share\" -
+DNIX_STATE_DIR=\"/tmp/nix-autotools/state/nix\" -
+DNIX_LOG_DIR=\"/tmp/nix-autotools/state/log/nix\" -
+DNIX_CONF_DIR=\"/tmp/nix-autotools/etc/nix\" 
+-DNIX_LIBEXEC_DIR=\"/tmp/nix-autotools/libexec\" -
+DNIX_BIN_DIR=\"/tmp/nix-autotools/bin\" -
+DNIX_VERSION=\"0.16\" -
+
+
+
+
+
  - check all CMakeLists.txt files for static paths which i might have forgotten
  - compare PREFIX-BUILD with PREFIX-DESTDIR-BUILD
  - there should be only one global symlink script: NIX_SYMLINK
@@ -94,7 +149,6 @@ HINT: you can also install your store directory to /home/myuser/nix/store but th
 - NOTICE: renamed scripts/nix-profile.sh.in into scripts/nix.sh.in (as it is installed in the autotools variant as nix.sh)
 - NOTICE: the nix release version is now provided by NIX_VERSION in the main CMakeLists.txt file
 - NOTICE: src/boost/shared_count.hpp was not installed in the autotools variant (cmake installs it)
-- NOTICE: src/boost/workaround.hpp  was not installed in the autotools variant (cmake installs it)
 - NOTICE: uses native bzip2, removed ./libexec/nix/bunzip2 and ./libexec/nix/bzip2
  - WARNING: no bzip2 tests anymore, should there be any?
    ./bzip2 -1  < sample1.ref > sample1.rb2               
