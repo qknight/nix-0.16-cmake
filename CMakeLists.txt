@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 SET(PROJECT_NAME nix)
 SET(NIX_VERSION 	"0.16" )
 
-OPTION(OVERWRITE_DEFAULT_STORE_DIR "In case you want to install the 'store' directory to '/store' instead of {CMAKE_INSTALL_PREFIX}/store' set this value to ON. In case {CMAKE_INSTALL_PREFIX}=/, use the default value" "OFF")
+OPTION(OVERWRITE_DEFAULT_STORE_DIR "In case you want to install the 'store' directory to '/nix/store' instead of {CMAKE_INSTALL_PREFIX}/nix/store' set this value to ON. In case you are installing into / anyway, use the default value" "OFF")
 
 IF(OVERWRITE_DEFAULT_STORE_DIR)
 	SET(NIX_STORE_DIR	"/nix/store")
@@ -95,27 +95,7 @@ if(NOT NIX_TR_PATH)
   message(FATAL_ERROR "Could not find 'tr' command. 'sys-apps/coreutils' contains this program.")
 endif(NOT NIX_TR_PATH)
 
-FIND_PROGRAM(NIX_COREUTILS_PATH mkdir
-  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
-)
-if(NOT NIX_COREUTILS_PATH)
-  message(FATAL_ERROR "Could not find 'mkdir' command. 'sys-apps/coreutils' contains this program.")
-endif(NOT NIX_COREUTILS_PATH)
-
-FIND_PROGRAM(NIX_COREUTILS_PATH mv
-  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
-)
-if(NOT NIX_COREUTILS_PATH)
-  message(FATAL_ERROR "Could not find 'mv' command. 'sys-apps/coreutils' contains this program.")
-endif(NOT NIX_COREUTILS_PATH)
-
-FIND_PROGRAM(NIX_COREUTILS_PATH rmdir
-  PATHS /bin /usr/bin/ ENV PATH NO_DEFAULT_PATH
-)
-if(NOT NIX_COREUTILS_PATH)
-  message(FATAL_ERROR "Could not find 'rmdir' command. 'sys-apps/coreutils' contains this program.")
-endif(NOT NIX_COREUTILS_PATH)
-
+# FIXME a constant is not good here
 SET (NIX_COREUTILS_PATH "/bin")
 
 # could be removed upstream (as it is not used in the cmake build)

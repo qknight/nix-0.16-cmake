@@ -23,6 +23,7 @@ HINT: you can also install your store directory to /home/myuser/nix/store but th
       in step (4), simply search for OVERWRITE_DEFAULT_STORE_DIR and swich it from OFF to ON. now you have to
       create (as root) a new directory called '/store/', given the right permissions you can have a normal
       prefix installation without having to recompile the software all the time.
+      NOTE: instead of using ccmake, one could also add this, in step (3): -DOVERWRITE_DEFAULT_STORE_DIR=ON 
       -> this design was chosen as it enables a normal prefix installation without being root, 
       as only stept (6) is done manually (as root user).
       NOTE: only one user per system can use the store like this, if you have a high level of trust you can
@@ -30,13 +31,26 @@ HINT: you can also install your store directory to /home/myuser/nix/store but th
             security wise one should think about that.
 
 ================== TODO: final QualityAssurance ==================
-experimenting with NIX_SYSTEM
+- nix DOES NOT need 1777 in /store as a nix-autotools experiment revealed
 
+- replaced by static 'x86_64-linux' with no effect, not the problem
+- idea to narrow down the problem: 
+  -> replace nix-autotools installation step by step by the nix-cmake installation until it breaks
+     - bin/* <- scripts funktionieren
+     - libexec/ replaced by cmake stuff, worked well...  
+     - removed bzip2 bunzip2 and replaced by symlinks to the system tools -> worked
+     - bin/* & lib/* <- replaced all compiled binaries in and /lib/nix with no effect -> worked even though it was now using /nix/store instead of /tmp/nix-prefix/store, funny
+     - state/ was replaced by cmake state... <- works
+     - share/ <- hit & destroyed ;-)
+       the problem was a wrong written path name: CMAKE_TR_PATh <- not the 'h' vs 'H'
+
+  -> if it is a permission issue; chmod 0755 * -R and try to use it, then experiment with nix-cmake 
+   ->> interestingly the execute issue wasn't there, still the issue:
+      /nix/store/428z5zlnk91kyihw7as8l2hxd983whbj-unpack.sh: line 24: --: command not found
 
 -> symlink index.html in /tmp/nix-cmake/share/doc/nix/manual should not point to /tmp/nix-cmake/share/doc/nix/manual/manual.html
   -> in contrast, symlinks in /state/nix/gcroots should be absolute (and they are correct)
--> /etc/nix/nix.conf.example missing
-- maybe nix DOES really need 1777 in /store?
+
 - maybe the 'system' > x86_64 vs x86_64-linux
 
 % diff nix-prefetch-url /tmp/nix-autotools/bin/nix-prefetch-url                                                                           4365 2 pts/1 /tmp/nix-cmake/bin meli@anuBis 11-01-27 11:41:30

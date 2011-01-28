@@ -2,7 +2,7 @@
 # helps to see compiler / linker stuff, just uncomment 
 #export VERBOSE=1
 
-NIXPATH="/tmp/nix-unified"
+NIXPATH="/tmp/nix-prefix"
 #NIXPATH="/tmp/nix-cmake"
 
 #clean
