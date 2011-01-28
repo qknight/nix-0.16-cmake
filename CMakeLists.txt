@@ -21,8 +21,8 @@ SET(NIX_LIB_DIR		"lib" )
 SET(NIX_INCLUDE_DIR	"include" )
 
 #should be "x86_64-linux" but is "x86_64 with" provided by CMAKE_HOST_SYSTEM_PROCESSOR
-#SET(NIX_SYSTEM 		"${CMAKE_HOST_SYSTEM_PROCESSOR}")
-SET(NIX_SYSTEM          "x86_64-linux")
+#SET(NIX_SYSTEM          "x86_64-linux")
+SET(NIX_SYSTEM 		"${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
 # required external programs (for runtime of nix, not buildtime)
 FIND_PROGRAM(NIX_OPENSSL_PATH openssl

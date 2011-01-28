@@ -1,0 +1,30 @@
+#!/bin/bash -v
+
+mPREFIX=/tmp/nix-autotools
+
+# clean
+rm -Rf "${mPREFIX}"
+
+# remove the nix profile
+rm -Rf ~/.nix-defexpr
+rm -Rf ~/.nix-profile
+
+# store
+find /nix/store -exec chmod 0777 {} +
+rm -Rf /nix/store/*
+
+# install the software
+cd /home/meli/Desktop/nix/nix-0.16/
+make install
+
+cd ${mPREFIX}
+export PATH=${mPREFIX}/bin:$PATH
+
+nix-channel --update
+nix-env -i vim
+nix-collect-garbage
+
+nix-env -i zsh
+nix-collect-garbage
+
+

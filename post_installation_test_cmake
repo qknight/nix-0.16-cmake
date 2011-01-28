@@ -1,0 +1,20 @@
+#!/bin/bash -v
+
+# clean
+rm -Rf /tmp/nix-prefix/*
+
+cd /home/meli/Desktop/nix/nix-0.16-cmake/build
+make install
+
+# remove the nix profile
+rm -Rf ~/.nix-defexpr
+rm -Rf ~/.nix-profile
+
+cd /tmp/nix-prefix/
+export PATH=/tmp/nix-prefix/bin:$PATH
+
+nix-channel --add http://nixos.org/releases/nixpkgs/channels/nixpkgs-unstable
+nix-channel --update
+nix-env -i vim
+nix-collect-garbage
+
