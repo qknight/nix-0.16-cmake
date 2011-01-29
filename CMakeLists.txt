@@ -20,39 +20,10 @@ SET(NIX_BIN_DIR 	"bin" )
 SET(NIX_LIB_DIR		"lib" )
 SET(NIX_INCLUDE_DIR	"include" )
 
-#should be "x86_64-linux" but is "x86_64 with" provided by CMAKE_HOST_SYSTEM_PROCESSOR
-SET(NIX_SYSTEM          "x86_64-linux")
-#SET(NIX_SYSTEM 		"${CMAKE_HOST_SYSTEM_PROCESSOR}")
-# Construct a Nix system name (like "i686-linux").
-#cpu_name=$(uname -p | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ' 'abcdefghijklmnopqrstuvwxyz_')
-#machine_name=$(uname -m | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ' 'abcdefghijklmnopqrstuvwxyz_')
-#
-#case $machine_name in
-#    i*86)
-#        machine_name=i686
-#        ;;
-#    x86_64)
-#        machine_name=x86_64
-#        ;;
-#    ppc)
-#        machine_name=powerpc
-#        ;;
-#    *)
-#        if test "$cpu_name" != "unknown"; then
-#            machine_name=$cpu_name
-#        fi
-#        ;;
-#esac
-#
-#sys_name=$(uname -s | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ' 'abcdefghijklmnopqrstuvwxyz_')
-#
-#case $sys_name in
-#    cygwin*)
-#        sys_name=cygwin
-#        ;;
-#esac
-
-
+EXECUTE_PROCESS( WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} COMMAND /bin/bash detect-system.sh RESULT_VARIABLE NIX_DETECT_SYSTEM OUTPUT_VARIABLE NIX_SYSTEM )
+IF (NOT ${NIX_DETECT_SYSTEM} EQUAL "0")
+	MESSAGE(FATAL_ERROR "Could not determine the NIX_SYSTEM variable executing detect-system.sh")
+ENDIF (NOT ${NIX_DETECT_SYSTEM} EQUAL "0")
 
 # required external programs (for runtime of nix, not buildtime)
 FIND_PROGRAM(NIX_OPENSSL_PATH openssl

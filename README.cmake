@@ -13,12 +13,15 @@ WARNING: this codebase has not been tested yet, this is a developer release of i
    export PATH=/home/meli/.nix-profile/bin:$PATH
    and use binaries installed via nix
    -> does nix-autotools do that automatically??
+ -> this error will only occur when "etc/profile.d/nix.s" is run before nix-channel --update
 
 -> symlink index.html in /tmp/nix-cmake/share/doc/nix/manual should not point to /tmp/nix-cmake/share/doc/nix/manual/manual.html
   -> in contrast, symlinks in /state/nix/gcroots should be absolute (and they are correct)
 
 -> write a cross platform SYSTEM (like x86_64-linux) detection
 
+-> what does the next message mean?
+warning: `/tmp/nix-prefix/state/nix/profiles/default-1-link' is not in a directory where the garbage collector looks for roots; therefore, `/nix/store/4pi3p39g4n8ssf6aqswk5xm5x4k8b6p6-user-environment' might be removed by the garbage collector
 ================== resolved issues ==================
 -> when SYSTEM (like x86_64-linux) is wrongly defined, this will lead to strange problems as for instance it will remove too many packages in the store 
    when calling nix-collect-garbage. a better way would be to fail with a meaning full error message
