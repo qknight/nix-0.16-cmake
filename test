@@ -7,6 +7,9 @@ NIXPATH="/tmp/nix-prefix"
 
 #clean
 mkdir -p build
+rm -Rf /tmp/nix-prefix
+
+
 cd /home/meli/Desktop/nix/nix-0.16-cmake && rm -Rf build/* && rm -Rf /tmp/nix-cmake/* && cd build 
 
 if [ $? -eq 0 ]; then
@@ -34,4 +37,4 @@ if [ $? -eq 0 ]; then
 	fi
 fi
 
-#mv $NIXPATH /tmp/nix-cmake-prefix
+mv $NIXPATH/* /tmp/nix-cmake-prefix

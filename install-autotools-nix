@@ -9,5 +9,9 @@ cd nix-0.16/
 ./bootstrap.sh
 ./configure --prefix=$mPREFIX --localstatedir=$mPREFIX/state --with-store-dir=/nix/store
 make
+
+#clean
+rm -Rf /tmp/nix-prefix
+
 make install
 mv $mPREFIX /tmp/nix-autotools-prefix

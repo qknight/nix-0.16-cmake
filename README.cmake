@@ -8,17 +8,38 @@ WARNING: this codebase has not been tested yet, this is a developer release of i
            - used evopedia
 
 ================== broken stuff ==================
+-> paths in libmain are wrong. in fact: i think i have to rework all paths
+given by CMakeLists.txt, libmain's
+-DNIX_STORE_DIR=/nix/store
+-DNIX_DATA_DIR=/tmp/nix-prefix/share
+-DNIX_STATE_DIR=/tmp/nix-prefix/state
+-DNIX_LOG_DIR=/tmp/nix-prefix/state/log/nix
+-DNIX_CONF_DIR=/tmp/nix-prefix/etc
+-DNIX_LIBEXEC_DIR=/tmp/nix-prefix/libexec
+-DNIX_BIN_DIR=/tmp/nix-prefix/bin
+-DNIX_VERSION=0.16
+
+autotools log
+-DNIX_STORE_DIR=\"/tmp/nix-autotools/store\" 
+-DNIX_DATA_DIR=\"/tmp/nix-autotools/share\" 
+-DNIX_STATE_DIR=\"/tmp/nix-autotools/state/nix\" 
+-DNIX_LOG_DIR=\"/tmp/nix-autotools/state/log/nix\" 
+-DNIX_CONF_DIR=\"/tmp/nix-autotools/etc/nix\" 
+-DNIX_LIBEXEC_DIR=\"/tmp/nix-autotools/libexec\"
+ -DNIX_BIN_DIR=\"/tmp/nix-autotools/bin\" 
+
+
+
+
 -> the symlink created by """etc/profile.d/nix.sh""" does point to a not existing direcotry /tmp/nix-prefix/state/nix/profiles/default/
    i've added a symlink from  /tmp/nix-prefix/state/nix/profiles/default/   to   ../../profiles/default/ and now i can:
    export PATH=/home/meli/.nix-profile/bin:$PATH
    and use binaries installed via nix
    -> does nix-autotools do that automatically??
- -> this error will only occur when "etc/profile.d/nix.s" is run before nix-channel --update
+  -> this error will only occur when "etc/profile.d/nix.s" is run before nix-channel --update
 
 -> symlink index.html in /tmp/nix-cmake/share/doc/nix/manual should not point to /tmp/nix-cmake/share/doc/nix/manual/manual.html
   -> in contrast, symlinks in /state/nix/gcroots should be absolute (and they are correct)
-
--> write a cross platform SYSTEM (like x86_64-linux) detection
 
 -> what does the next message mean?
 warning: `/tmp/nix-prefix/state/nix/profiles/default-1-link' is not in a directory where the garbage collector looks for roots; therefore, `/nix/store/4pi3p39g4n8ssf6aqswk5xm5x4k8b6p6-user-environment' might be removed by the garbage collector
@@ -221,3 +242,4 @@ HINT: you can also install your store directory to /home/myuser/nix/store but th
               as binaries might not be executed during 'make' time (only in the field, after 'make install') anyway it would only speed up the 'make install' step 
               and this does not take that long therefore i did not optimize this
  - NOTICE: runtime dependencies, programs like 'openssl', are queried via cmake's FIND_PROGRAM(..) for scripts in the directory 'scripts' and 'coreutils'
+ - NOTICE: the NIX_SYSTEM variable (like x86_64-linux) is detected automatically using detect-system.sh
