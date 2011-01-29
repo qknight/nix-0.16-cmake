@@ -1,7 +1,7 @@
 #!/bin/bash
 
-DIRA=/tmp/nix-unified
-DIRB=/tmp/nix-autotools
+DIRA=/tmp/nix-cmake-prefix/libexec
+DIRB=/tmp/nix-autotools-prefix/libexec
 
 find $DIRA | sed "s%${DIRA}%%g" | sort > /tmp/fileA
 find $DIRB | sed "s%${DIRB}%%g" | sort > /tmp/fileB

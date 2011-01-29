@@ -1,17 +1,45 @@
-#!/bin/bash -v
+#!/bin/bash 
+
+if [ "$1" == "cmake" ]; then
+	toolchain=cmake
+	src_url="/home/meli/Desktop/nix/nix-0.16-cmake/build"
+fi
+if [ "$1" ==  "autotools" ]; then
+	toolchain=automake
+	src_url="/home/meli/Desktop/nix/nix-0.16/"
+fi
+
+if [ "$toolchain"x == ""x ]; then
+	echo "error, no argument given"
+	exit
+fi
+
+mPREFIX=/tmp/nix-prefix
 
 # clean
-rm -Rf /tmp/nix-cmake/*
-
-cd /home/meli/Desktop/nix/nix-0.16-cmake/build
-make install
+rm -Rf "${mPREFIX}"
 
 # remove the nix profile
-#rm -Rf ~/.nix-
+rm -Rf ~/.nix-defexpr
+rm -Rf ~/.nix-profile
 
-cd /tmp/nix-cmake/
-export PATH=/tmp/nix-cmake/bin:$PATH
+# store
+find /nix/store -exec chmod 0700 {} +
+rm -Rf /nix/store/*
 
-nix-channel --add http://nixos.org/releases/nixpkgs/channels/nixpkgs-unstable
+# install the software
+cd "$src_url"
+make install
+
+cd ${mPREFIX}
+export PATH=${mPREFIX}/bin:$PATH
+
 nix-channel --update
-nix-channel -qa '*' > software_in_repo
+nix-env -i vim
+nix-collect-garbage
+
+nix-env -i zsh
+nix-collect-garbage
+
+ls -la ${mPREFIX}/state/nix/profiles/default/bin
+ls -la ~/.nix-*

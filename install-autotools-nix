@@ -1,6 +1,6 @@
 #!/bin/bash -v
 
-mPREFIX="/tmp/nix-autotools/"
+mPREFIX="/tmp/nix-prefix/"
 
 cd /home/meli/Desktop/nix
 rm -Rf nix-0.16
@@ -9,3 +9,5 @@ cd nix-0.16/
 ./bootstrap.sh
 ./configure --prefix=$mPREFIX --localstatedir=$mPREFIX/state --with-store-dir=/nix/store
 make
+make install
+mv $mPREFIX /tmp/nix-autotools-prefix

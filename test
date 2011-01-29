@@ -2,8 +2,8 @@
 # helps to see compiler / linker stuff, just uncomment 
 #export VERBOSE=1
 
+#NIXPATH="/tmp/nix-prefix"
 NIXPATH="/tmp/nix-prefix"
-#NIXPATH="/tmp/nix-cmake"
 
 #clean
 mkdir -p build
@@ -33,3 +33,5 @@ if [ $? -eq 0 ]; then
 		fi
 	fi
 fi
+
+#mv $NIXPATH /tmp/nix-cmake-prefix

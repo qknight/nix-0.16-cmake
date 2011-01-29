@@ -1,6 +1,6 @@
 WARNING: this codebase has not been tested yet, this is a developer release of incomplete code.
 
-- STATUS: BROKEN, many issues, see below
+- STATUS: tested successfully on my gentoo linux box as prefix installation
 
      i have tested the cmake based installer on my dual core 64 bit computer with a prefix installation in gentoo and it worked, i installed vim into /nix/store
      but as a normal user (see the assisted installation below, and especially step (6) to understand the setup)
@@ -13,6 +13,16 @@ WARNING: this codebase has not been tested yet, this is a developer release of i
    export PATH=/home/meli/.nix-profile/bin:$PATH
    and use binaries installed via nix
    -> does nix-autotools do that automatically??
+
+-> symlink index.html in /tmp/nix-cmake/share/doc/nix/manual should not point to /tmp/nix-cmake/share/doc/nix/manual/manual.html
+  -> in contrast, symlinks in /state/nix/gcroots should be absolute (and they are correct)
+
+-> write a cross platform SYSTEM (like x86_64-linux) detection
+
+================== resolved issues ==================
+-> when SYSTEM (like x86_64-linux) is wrongly defined, this will lead to strange problems as for instance it will remove too many packages in the store 
+   when calling nix-collect-garbage. a better way would be to fail with a meaning full error message
+
 
  - nix-collect-garbage should not remove _all_ packages, which it does currenlty? why?!
   -> experimented with nix-autotools (which uses /nix/store (after i cleaned it)) and using the same commands it WON'T remove the manifest
@@ -71,9 +81,6 @@ created 0 symlinks in user environment
 warning: `/tmp/nix-prefix/state/nix/profiles/default-2-link' is not in a directory where the garbage collector looks for roots; therefore, `/nix/store/rfgjzzg39nynvl3ydwvas5rw6glami83-user-environment' might be removed by the garbage collector
 
 
--> symlink index.html in /tmp/nix-cmake/share/doc/nix/manual should not point to /tmp/nix-cmake/share/doc/nix/manual/manual.html
-  -> in contrast, symlinks in /state/nix/gcroots should be absolute (and they are correct)
-
 ================== how to install: ========================
 -- the normal installation into / (used in nix os) --
 1. mkdir build
@@ -105,7 +112,7 @@ HINT: you can also install your store directory to /home/myuser/nix/store but th
             security wise one should think about that.
 
   binaries are in:
-    /nix/nix-autotools/bin
+    /tmp/nix-autotools/bin
     /tmp/nix-autotools/state/nix/profiles/default/bin
 
     symlink in ~/.nix-profile should point to /tmp/nix-prefix/state/nix/profiles/default/ (which is an empty directory)
@@ -211,75 +218,3 @@ HINT: you can also install your store directory to /home/myuser/nix/store but th
               as binaries might not be executed during 'make' time (only in the field, after 'make install') anyway it would only speed up the 'make install' step 
               and this does not take that long therefore i did not optimize this
  - NOTICE: runtime dependencies, programs like 'openssl', are queried via cmake's FIND_PROGRAM(..) for scripts in the directory 'scripts' and 'coreutils'
-
-================== finished stuff, ignore please, keept for informational purpose (for myself) ==================
-when using: 
-NOTE: cmake -DCMAKE_INSTALL_PREFIX:PATH="/tmp/nix-cmake" .. && make install 
-one HAS to use relative directories to make installation work
--> watch for wrong "Set runtime path of" directories
-this should be the directory your libfoo.so is located     
-- now installations with prefix will overwrite all others but warn about recompilation issues related to moving /nix/store into $prefix/nix/store where prefix != /
- - cmake relative path is done using:
-  INSTALL(FILES "ssh.pm" DESTINATION "libexec/nix")
-  -> installs into /usr/local/libexec/nix
-  vs
-  INSTALL(FILES "ssh.pm" DESTINATION "/libexec/nix")
-  -> installs into /libexec/nix
- - fix relative 'make install DESTDIR=/tmp/foo' installation issue, where the defines would be incorrect when used
-   -> $ENV{DESTDIR}${VAR_INSTALL_DIR}
-   -> CMAKE_INSTALL_PREFIX
-
-
-================== blog: ==================
- - why is nix-prefix deployment faster than gentoo-prefix deployment: 
-  > nix uses more system tools
-   < does it use native gcc?
-  > nix does not recompile much
- - what is better:
-  a) several places including "config.h" produced by configure_file(config.h.in config.h @only)
-  b) several places modified using configure_file individually
-  c) use DEFINES as -DNIX_LOG_DIR="/nix/var/log/nix"
-  for some files (as scripts) it would be good to use a) if there are many many variables shared but b) if it is only the version of the program
-  for compiler code it is sufficient to use defines when needed
-  a) is also cool when wanting all headers+config.h to be available for later library usage as it might be needed for projects later on
-     this is however not the case here as config.h (in the autotools style project) isn't installed at all
-
- - advantage using:
-   make install DESTDIR=/tmp/foo over cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
- - discuss why "BUILD_WITH_INSTALL_RPATH ON" is important (compare to autotools nix build, where this was default). 
-   this helps to find the library while not having to use LD_LIBRARY_PATH
-   http://www.cmake.org/Wiki/CMake_RPATH_handling
- - seen this work in the perspective of a package manager
-   -> it is important that paths are 'relative' in the sense of 'make install' so that one can 
-      install this project into a prefix and later create a package from that which will however, be deployed to '/'
-      therefore a 'relative' path structure for libraries and search paths is crucial
-
- - how is DESTDIR used by packagers? http://www.dwheeler.com/essays/automating-destdir.html
-
-- shell scripts are not executable yet
-  fixed with adding:
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-   over
-        PERMISSIONS OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
-  probably a problem by cmake internally
-   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
-    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                   
-      file INSTALL cannot set permissions on                                                                
-      "/tmp/nix-cmake/bin/nix-collect-garbage"                                                              
-    Call Stack (most recent call first):                                                                    
-      cmake_install.cmake:175 (INCLUDE)  
-
-    CMake Error at scripts/cmake_install.cmake:40 (FILE):                                                        
-      file INSTALL cannot set permissions on                                                                     
-      "/tmp/nix-destdir/tmp/nix-cmake/bin/nix-collect-garbage"                                                   
-    Call Stack (most recent call first):                                                                         
-      cmake_install.cmake:175 (INCLUDE) 
-   =========== the reported error for both: normal prefixed build and prefixed destdir build ==========
-
-
-- fix RPATH thing again, did stop to work
-  regression was because of the wrong path being linked to:
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${NIX_LIB_DIR}")
- -> resulting in "/usr/local//lib"
-but using: make install DESTDIR=/tmp/foo 
- -> "/tmp/foo/lib"
