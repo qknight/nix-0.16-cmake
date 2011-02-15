@@ -4,10 +4,10 @@ DIRA=$1
 DIRB=$2
 
 cd $DIRA
-find . | sed "s%\^${DIRA}%%g" | sort > /tmp/fileA
+find . | sort > /tmp/fileA
 cd ..
 cd $DIRB 
-find . | sed "s%\^${DIRB}%%g" | sort > /tmp/fileB
+find . | sort > /tmp/fileB
 
 echo "files in both dirs are filtered by -3"
 echo "--------------------------------------------"
