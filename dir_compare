@@ -1,10 +1,13 @@
 #!/bin/bash
 
-DIRA=/tmp/nix-cmake-prefix/libexec
-DIRB=/tmp/nix-autotools-prefix/libexec
+DIRA=$1
+DIRB=$2
 
-find $DIRA | sed "s%${DIRA}%%g" | sort > /tmp/fileA
-find $DIRB | sed "s%${DIRB}%%g" | sort > /tmp/fileB
+cd $DIRA
+find . | sed "s%\^${DIRA}%%g" | sort > /tmp/fileA
+cd ..
+cd $DIRB 
+find . | sed "s%\^${DIRB}%%g" | sort > /tmp/fileB
 
 echo "files in both dirs are filtered by -3"
 echo "--------------------------------------------"
